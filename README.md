@@ -6,6 +6,10 @@ de lapjeskat met haar staart zwiept, vogels en een hond voorbijkomen en muziekno
 
 ## Snel bekijken
 
+Online: **https://j3nt3-i.github.io/mijn-huis-header/**
+
+Of lokaal:
+
 ```bash
 python3 -m http.server 8765
 ```
