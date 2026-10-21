@@ -1,0 +1,378 @@
+<!doctype html><html lang="nl"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Header testen</title>
+<style>
+:root{--primary-background-color:#1c1c1c;color-scheme:dark}
+body{margin:0;background:#111;color:#ddd;font:14px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;display:flex;gap:24px;padding:20px;flex-wrap:wrap;align-items:flex-start}
+.phone{width:400px;height:860px;border-radius:44px;overflow:hidden;background:var(--primary-background-color);box-shadow:0 0 0 10px #2a2a2a,0 20px 60px #000a;position:relative;flex:none}
+.scroller{position:absolute;inset:0;overflow:auto;scrollbar-width:none;isolation:isolate}
+.panel{display:flex;flex-direction:column;gap:14px;min-width:260px;max-width:340px}
+.panel h1{font-size:18px;margin:0}
+label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#aaa}
+select,button{font:inherit;font-size:15px;color:#eee;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:10px;padding:8px 10px}
+button{cursor:pointer}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.check{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:#ddd}
+.info{font:12px ui-monospace,Menlo,monospace;color:#888;white-space:pre-wrap;line-height:1.5}
+.hint{font-size:12px;color:#888;line-height:1.5}
+</style>
+<div class="phone"><div class="scroller" id="scroller"><div id="host"></div></div></div>
+<div class="panel">
+  <h1>Header testen</h1>
+  <label>Weer<select id="wx"></select></label>
+  <label>Dagdeel<select id="tod"><option value="dawn">Ochtendschemer</option><option value="day">Dag</option><option value="dusk">Avondschemer</option><option value="night">Nacht</option></select></label>
+  <div class="row"><button id="prev">← Vorige</button><button id="next">Volgende →</button></div>
+  <label class="check"><input type="checkbox" id="down" checked> Lampen beneden aan</label>
+  <label class="check"><input type="checkbox" id="up" checked> Lampen boven aan</label>
+  <label class="check"><input type="checkbox" id="music"> Muziek beneden (woonkamer/keuken)</label>
+  <label class="check"><input type="checkbox" id="musicup"> Muziek boven (Hall display / first floor)</label>
+  <label class="check"><input type="checkbox" id="light"> Lichte modus</label>
+  <div class="row"><button id="dog">🐕 Hond nu laten lopen</button><button id="birds">🐦 Vogels nu laten vliegen</button></div>
+  <div class="hint">Pijltjestoetsen ← → wisselen van tekening. Vogels en hond verschijnen alleen bij droog weer (zonnig, half bewolkt, bewolkt, winderig, sneeuw zonnig) en niet ’s nachts, zoals op het dashboard. Ze komen maar af en toe langs; met de knoppen start je meteen een ronde. De hond loopt over het gras voor de haag.</div>
+  <div class="info" id="info"></div>
+</div>
+<script>
+(() => {
+  const SKY = {"cloudy-dawn":"#a39ba8","cloudy-day":"#98a0aa","cloudy-dusk":"#a28e93","cloudy-night":"#3f4457","fog-dawn":"#bdb1c0","fog-day":"#b8c0c8","fog-dusk":"#bda2a6","fog-night":"#454d61","lightning-dawn":"#867f8e","lightning-day":"#6e747f","lightning-dusk":"#87747a","lightning-night":"#353b4b","lightning-rainy-dawn":"#6f707e","lightning-rainy-day":"#6c757e","lightning-rainy-dusk":"#6f6973","lightning-rainy-night":"#353948","partlycloudy-dawn":"#35497a","partlycloudy-day":"#2e8ce8","partlycloudy-dusk":"#2b2c5c","partlycloudy-night":"#120f2f","pouring-dawn":"#878691","pouring-day":"#7b838d","pouring-dusk":"#887d83","pouring-night":"#363a49","rainy-dawn":"#a39ba8","rainy-day":"#98a0aa","rainy-dusk":"#a28e93","rainy-night":"#3f4454","snowy-dawn":"#aaa0ab","snowy-day":"#a8adb2","snowy-dusk":"#ab9597","snowy-night":"#414555","snowy-rainy-dawn":"#a29ba8","snowy-rainy-day":"#929ba3","snowy-rainy-dusk":"#a28e92","snowy-rainy-night":"#3d4254","sunny-dawn":"#35497a","sunny-day":"#2e8ce8","sunny-dusk":"#2a2c5c","sunny-night":"#120f2f","windy-dawn":"#35497a","windy-day":"#2e8ce8","windy-dusk":"#2a2c5c","windy-night":"#120f2f","windy-variant-dawn":"#a39ba8","windy-variant-day":"#98a0a9","windy-variant-dusk":"#a28f93","windy-variant-night":"#3f4457","snowsun-dawn":"#35497a","snowsun-day":"#4397ea","snowsun-dusk":"#2a2c5c","snowsun-night":"#120f2f","sleet-dawn":"#a79da9","sleet-day":"#a0a5ab","sleet-dusk":"#a69092","sleet-night":"#404454"};
+  const OV = {"head":"%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20887%201662%27%3E%3Cdefs%3E%3CradialGradient%20id%3D%27w%27%20cx%3D%270.5%27%20cy%3D%270.45%27%20r%3D%270.7%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23fff1bf%27%2F%3E%3Cstop%20offset%3D%270.6%27%20stop-color%3D%27%23f8cf6f%27%2F%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23e9a944%27%2F%3E%3C%2FradialGradient%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23a7babb%27%2F%3E%3Cstop%20offset%3D%270.55%27%20stop-color%3D%27%237f9497%27%2F%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%2355696d%27%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%27n%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%232a2e48%27%2F%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%2316182c%27%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cg%20transform%3D%27translate%280%20467.42%29%20scale%280.369583%29%27%3E","upOn":"%3Crect%20x%3D%27841.2%27%20y%3D%271324%27%20width%3D%27120%27%20height%3D%27170.4%27%20fill%3D%27url%28%23w%29%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%27975.6%27%20y%3D%271324%27%20width%3D%27120%27%20height%3D%27170.4%27%20fill%3D%27url%28%23w%29%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%271303.2%27%20y%3D%271324%27%20width%3D%27120%27%20height%3D%27170.4%27%20fill%3D%27url%28%23w%29%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%271437.6%27%20y%3D%271324%27%20width%3D%27120%27%20height%3D%27170.4%27%20fill%3D%27url%28%23w%29%27%20rx%3D%272%27%2F%3E","upOff":"%3Crect%20x%3D%27841.2%27%20y%3D%271324%27%20width%3D%27120%27%20height%3D%27170.4%27%20fill%3D%27url%28%23n%29%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%27975.6%27%20y%3D%271324%27%20width%3D%27120%27%20height%3D%27170.4%27%20fill%3D%27url%28%23n%29%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%271303.2%27%20y%3D%271324%27%20width%3D%27120%27%20height%3D%27170.4%27%20fill%3D%27url%28%23n%29%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%271437.6%27%20y%3D%271324%27%20width%3D%27120%27%20height%3D%27170.4%27%20fill%3D%27url%28%23n%29%27%20rx%3D%272%27%2F%3E","downDay":"%3Crect%20x%3D%271059.6%27%20y%3D%271798%27%20width%3D%27349.2%27%20height%3D%27284.4%27%20fill%3D%27url%28%23g%29%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%271423.2%27%20y%3D%271798%27%20width%3D%27134.4%27%20height%3D%27284.4%27%20fill%3D%27url%28%23g%29%27%20rx%3D%272%27%2F%3E","downNight":"%3Crect%20x%3D%271059.6%27%20y%3D%271798%27%20width%3D%27349.2%27%20height%3D%27284.4%27%20fill%3D%27url%28%23n%29%27%20rx%3D%272%27%2F%3E%3Crect%20x%3D%271423.2%27%20y%3D%271798%27%20width%3D%27134.4%27%20height%3D%27284.4%27%20fill%3D%27url%28%23n%29%27%20rx%3D%272%27%2F%3E","cat":"%3Cg%20transform%3D%27translate%28860%201393%29%27%3E%3Cdefs%3E%3CclipPath%20id%3D%27cc%27%3E%3Cellipse%20cx%3D%2738%27%20cy%3D%2774%27%20rx%3D%2725%27%20ry%3D%2725%27%2F%3E%3Crect%20x%3D%2713%27%20y%3D%2774%27%20width%3D%2750%27%20height%3D%2726%27%20rx%3D%276%27%2F%3E%3Ccircle%20cx%3D%2738%27%20cy%3D%2738%27%20r%3D%2717%27%2F%3E%3Cpath%20d%3D%27M23%2030%20L26%209%20L36%2023%20Z%20M40%2023%20L50%209%20L53%2030%20Z%27%2F%3E%3C%2FclipPath%3E%3C%2Fdefs%3E%3Cg%3E%3CanimateTransform%20attributeName%3D%27transform%27%20type%3D%27rotate%27%20dur%3D%279s%27%20repeatCount%3D%27indefinite%27%20calcMode%3D%27spline%27%20keyTimes%3D%270%3B0.05%3B0.1%3B0.15%3B0.2%3B0.25%3B1%27%20values%3D%270%2058%2093%3B-22%2058%2093%3B8%2058%2093%3B-18%2058%2093%3B6%2058%2093%3B0%2058%2093%3B0%2058%2093%27%20keySplines%3D%270.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%3B0%200%201%201%27%2F%3E%3Cpath%20d%3D%27M58%2093%20C80%2095%2082%2070%2070%2058%27%20fill%3D%27none%27%20stroke%3D%27%235b4636%27%20stroke-width%3D%279%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M58%2093%20C80%2095%2082%2070%2070%2058%27%20fill%3D%27none%27%20stroke%3D%27%23e08a3c%27%20stroke-width%3D%276%27%20stroke-linecap%3D%27round%27%2F%3E%3Cpath%20d%3D%27M73%2066%20C72%2062%2071%2060%2070%2058%27%20fill%3D%27none%27%20stroke%3D%27%232a2420%27%20stroke-width%3D%276%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%23f4ecdc%27%20stroke%3D%27%235b4636%27%20stroke-width%3D%273%27%3E%3Cellipse%20cx%3D%2738%27%20cy%3D%2774%27%20rx%3D%2725%27%20ry%3D%2725%27%2F%3E%3Crect%20x%3D%2713%27%20y%3D%2774%27%20width%3D%2750%27%20height%3D%2726%27%20rx%3D%276%27%2F%3E%3Ccircle%20cx%3D%2738%27%20cy%3D%2738%27%20r%3D%2717%27%2F%3E%3Cpath%20d%3D%27M23%2030%20L26%209%20L36%2023%20Z%20M40%2023%20L50%209%20L53%2030%20Z%27%2F%3E%3C%2Fg%3E%3Cg%20fill%3D%27%23f4ecdc%27%3E%3Cellipse%20cx%3D%2738%27%20cy%3D%2774%27%20rx%3D%2725%27%20ry%3D%2725%27%2F%3E%3Crect%20x%3D%2713%27%20y%3D%2774%27%20width%3D%2750%27%20height%3D%2726%27%20rx%3D%276%27%2F%3E%3Ccircle%20cx%3D%2738%27%20cy%3D%2738%27%20r%3D%2717%27%2F%3E%3Cpath%20d%3D%27M23%2030%20L26%209%20L36%2023%20Z%20M40%2023%20L50%209%20L53%2030%20Z%27%2F%3E%3C%2Fg%3E%3Cg%20clip-path%3D%27url%28%23cc%29%27%3E%3Cellipse%20cx%3D%2722%27%20cy%3D%2780%27%20rx%3D%2714%27%20ry%3D%2717%27%20fill%3D%27%23e08a3c%27%2F%3E%3Cellipse%20cx%3D%2756%27%20cy%3D%2768%27%20rx%3D%2711%27%20ry%3D%2713%27%20fill%3D%27%232a2420%27%2F%3E%3Cpath%20d%3D%27M38%2018%20L56%208%20L58%2040%20C50%2034%2044%2030%2038%2030%20Z%27%20fill%3D%27%23e08a3c%27%2F%3E%3Cpath%20d%3D%27M18%208%20L36%2022%20C34%2034%2026%2040%2020%2040%20Z%27%20fill%3D%27%232a2420%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2732%27%20cy%3D%2739%27%20r%3D%272.8%27%20fill%3D%27%237fb547%27%2F%3E%3Ccircle%20cx%3D%2744%27%20cy%3D%2739%27%20r%3D%272.8%27%20fill%3D%27%237fb547%27%2F%3E%3Ccircle%20cx%3D%2732%27%20cy%3D%2739%27%20r%3D%271.1%27%20fill%3D%27%231b1b1b%27%2F%3E%3Ccircle%20cx%3D%2744%27%20cy%3D%2739%27%20r%3D%271.1%27%20fill%3D%27%231b1b1b%27%2F%3E%3Cpath%20d%3D%27M36%2045%20L40%2045%20L38%2047.5%20Z%27%20fill%3D%27%23e79aa6%27%2F%3E%3C%2Fg%3E","sil":"%3Cg%20transform%3D%27translate%28860%201393%29%27%20fill%3D%27%230d0c1b%27%3E%3Cellipse%20cx%3D%2738%27%20cy%3D%2774%27%20rx%3D%2725%27%20ry%3D%2725%27%2F%3E%3Crect%20x%3D%2713%27%20y%3D%2774%27%20width%3D%2750%27%20height%3D%2726%27%20rx%3D%276%27%2F%3E%3Ccircle%20cx%3D%2738%27%20cy%3D%2738%27%20r%3D%2717%27%2F%3E%3Cpath%20d%3D%27M23%2030%20L26%209%20L36%2023%20Z%20M40%2023%20L50%209%20L53%2030%20Z%27%2F%3E%3Cg%3E%3CanimateTransform%20attributeName%3D%27transform%27%20type%3D%27rotate%27%20dur%3D%2711s%27%20repeatCount%3D%27indefinite%27%20calcMode%3D%27spline%27%20keyTimes%3D%270%3B0.05%3B0.1%3B0.15%3B0.2%3B0.25%3B1%27%20values%3D%270%2058%2093%3B-22%2058%2093%3B8%2058%2093%3B-18%2058%2093%3B6%2058%2093%3B0%2058%2093%3B0%2058%2093%27%20keySplines%3D%270.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%3B0%200%201%201%27%2F%3E%3Cpath%20d%3D%27M58%2093%20C80%2095%2082%2070%2070%2058%27%20fill%3D%27none%27%20stroke%3D%27%230d0c1b%27%20stroke-width%3D%277%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2732%27%20cy%3D%2738%27%20r%3D%272.6%27%20fill%3D%27%23ffd866%27%2F%3E%3Ccircle%20cx%3D%2744%27%20cy%3D%2738%27%20r%3D%272.6%27%20fill%3D%27%23ffd866%27%2F%3E%3C%2Fg%3E","tail":"%3C%2Fg%3E%3C%2Fsvg%3E"};
+  const NOTE1 = "url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2014%2020%22%3E%3Cg%20fill%3D%22%23fff4d6%22%3E%3Cellipse%20cx%3D%224.6%22%20cy%3D%2216%22%20rx%3D%224.2%22%20ry%3D%223%22%20transform%3D%22rotate%28-22%204.6%2016%29%22%2F%3E%3Crect%20x%3D%227.4%22%20y%3D%222%22%20width%3D%221.5%22%20height%3D%2214%22%20rx%3D%220.7%22%2F%3E%3Cpath%20d%3D%22M8.2%202%20C10%204.5%2013.6%205.5%2012.8%2010.2%20C12.4%208%2010.6%207%208.2%206.6%20Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E')";
+  const NOTE2 = "url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2022%2020%22%3E%3Cg%20fill%3D%22%23fff4d6%22%3E%3Cellipse%20cx%3D%224.4%22%20cy%3D%2216.2%22%20rx%3D%224%22%20ry%3D%222.9%22%20transform%3D%22rotate%28-22%204.4%2016.2%29%22%2F%3E%3Cellipse%20cx%3D%2216.4%22%20cy%3D%2214.2%22%20rx%3D%224%22%20ry%3D%222.9%22%20transform%3D%22rotate%28-22%2016.4%2014.2%29%22%2F%3E%3Crect%20x%3D%227.2%22%20y%3D%223.4%22%20width%3D%221.5%22%20height%3D%2212.8%22%20rx%3D%220.7%22%2F%3E%3Crect%20x%3D%2219.2%22%20y%3D%221.4%22%20width%3D%221.5%22%20height%3D%2212.8%22%20rx%3D%220.7%22%2F%3E%3Cpath%20d%3D%22M7.2%203.4%20L20.7%201.4%20L20.7%204.4%20L7.2%206.4%20Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E')";
+  const DOG = "url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2040%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22fur%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23c98b55%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23a86d3f%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22furD%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%2393592f%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%237a4826%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cellipse%20cx%3D%2231%22%20cy%3D%2237.6%22%20rx%3D%2217%22%20ry%3D%221.8%22%20fill%3D%22%231d2a1a%22%20opacity%3D%220.22%22%2F%3E%3Cg%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22translate%22%20values%3D%220%200%3B0%20-0.7%3B0%200%3B0%20-0.7%3B0%200%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3Cpath%20d%3D%22M19.5%2022%20h3.4%20v13.3%20a1.7%201.7%200%200%201%20-3.4%200%20z%22%20fill%3D%22url%28%23furD%29%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%2220%2021.2%2022%3B-20%2021.2%2022%3B20%2021.2%2022%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M39.5%2022%20h3.4%20v13.3%20a1.7%201.7%200%200%201%20-3.4%200%20z%22%20fill%3D%22url%28%23furD%29%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%22-20%2041.2%2022%3B20%2041.2%2022%3B-20%2041.2%2022%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M15%2018%20C10%2016%208%2012%209%207%22%20fill%3D%22none%22%20stroke%3D%22%23a86d3f%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%22-14%2015%2018%3B12%2015%2018%3B-14%2015%2018%22%20dur%3D%220.42s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Crect%20x%3D%2213%22%20y%3D%2213%22%20width%3D%2233%22%20height%3D%2213.5%22%20rx%3D%226.8%22%20fill%3D%22url%28%23fur%29%22%2F%3E%3Cpath%20d%3D%22M20%2024.8%20Q30%2027.6%2040%2024.8%20L40%2026.2%20Q30%2028.6%2020%2026.2%20Z%22%20fill%3D%22%23f1dcbc%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M15.8%2021%20h3.6%20v14.3%20a1.8%201.8%200%200%201%20-3.6%200%20z%22%20fill%3D%22url%28%23fur%29%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%22-20%2017.6%2021%3B20%2017.6%2021%3B-20%2017.6%2021%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M36%2021%20h3.6%20v14.3%20a1.8%201.8%200%200%201%20-3.6%200%20z%22%20fill%3D%22url%28%23fur%29%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%2220%2037.8%2021%3B-20%2037.8%2021%3B20%2037.8%2021%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M40%2018%20Q44%209%2050%208%20L52%2015%20Q47%2017%2045%2022%20Z%22%20fill%3D%22url%28%23fur%29%22%2F%3E%3Ccircle%20cx%3D%2250.5%22%20cy%3D%2210.5%22%20r%3D%226.6%22%20fill%3D%22url%28%23fur%29%22%2F%3E%3Cellipse%20cx%3D%2256.6%22%20cy%3D%2213%22%20rx%3D%225.2%22%20ry%3D%223.6%22%20fill%3D%22%23e8c79c%22%2F%3E%3Ccircle%20cx%3D%2261%22%20cy%3D%2211.9%22%20r%3D%221.6%22%20fill%3D%22%232a1d16%22%2F%3E%3Ccircle%20cx%3D%2252.6%22%20cy%3D%228.6%22%20r%3D%221.05%22%20fill%3D%22%232a1d16%22%2F%3E%3Cpath%20d%3D%22M45.4%205.6%20Q42%207%2043%2014.2%20Q46.6%2012.6%2047.8%207.4%20Z%22%20fill%3D%22url%28%23furD%29%22%2F%3E%3Cpath%20d%3D%22M44.2%2015.4%20Q47%2019.6%2051.4%2016.6%22%20fill%3D%22none%22%20stroke%3D%22%23d64545%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E')";
+  const BIRD = "url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2020%22%3E%3Cpath%20fill%3D%22%232b3340%22%3E%3Canimate%20attributeName%3D%22d%22%20dur%3D%220.6s%22%20repeatCount%3D%22indefinite%22%20calcMode%3D%22spline%22%20keyTimes%3D%220%3B0.25%3B0.5%3B0.75%3B1%22%20keySplines%3D%220.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%22%20values%3D%22M2%203%20Q10%206%2016%2010%20Q18%2011%2020%2012%20Q22%2011%2024%2010%20Q30%206%2038%203%20Q31%209%2024%2013%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013%20Q9%209%202%203%20Z%3B%20M1%209%20Q9%208%2016%2010.5%20Q18%2011%2020%2012%20Q22%2011%2024%2010.5%20Q31%208%2039%209%20Q31%2011%2024%2013%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013%20Q9%2011%201%209%20Z%3B%20M4%2016%20Q10%2012%2016%2011%20Q18%2011%2020%2012%20Q22%2011%2024%2011%20Q30%2012%2036%2016%20Q30%2014%2024%2013.5%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013.5%20Q10%2014%204%2016%20Z%3B%20M1%209%20Q9%208%2016%2010.5%20Q18%2011%2020%2012%20Q22%2011%2024%2010.5%20Q31%208%2039%209%20Q31%2011%2024%2013%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013%20Q9%2011%201%209%20Z%3B%20M2%203%20Q10%206%2016%2010%20Q18%2011%2020%2012%20Q22%2011%2024%2010%20Q30%206%2038%203%20Q31%209%2024%2013%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013%20Q9%209%202%203%20Z%22%2F%3E%3C%2Fpath%3E%3C%2Fsvg%3E')";
+  // size in px; flock = several small birds flying together
+  const BIRDS = [
+    { top: 26, dur: 37, cross: 10, delay: 4, size: 18 },
+    { top: 20, dur: 53, cross: 15, delay: 22, size: 11, op: 0.8 },
+    { top: 33, dur: 47, cross: 11, delay: 15, size: 15, rtl: true },
+    { top: 17, dur: 67, cross: 16, delay: 35, size: 10, op: 0.85, flock: [[0, 0], [16, -7], [30, 4]] },
+    { top: 29, dur: 79, cross: 13, delay: 48, size: 13, rtl: true },
+  ];
+  const birdHTML = BIRDS.map((b, n) => '<b class="b' + n + '">' + (b.flock || [[0, 0]]).map(([x, y], k) =>
+    '<i style="left:' + x + 'px;top:' + y + 'px;width:' + b.size + 'px;height:' + b.size / 2 + 'px;opacity:' + (b.op || 1) +
+    ';animation-duration:' + (1.5 + ((n + k) % 4) * 0.3).toFixed(1) + 's;animation-delay:-' + (k * 0.6) + 's"></i>').join('') + '</b>').join('');
+  const BIRD_CSS = 'np-birds { position: absolute; z-index: -1; pointer-events: none; left: 0; width: 100%; overflow: hidden; display: block; ' +
+    'top: calc(-1 * (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); ' +
+    'animation: np-house-stay linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
+    'np-birds:not([show]) b, np-birds:not([show]) u { display: none; } ' +
+    // music notes drift up out of the living room window (music downstairs) and out of an upstairs window
+    // (Hall display / first floor group); both when everything plays
+    'np-birds s { position: absolute; display: none; left: 49vw; bottom: 58vw; width: 3.6vw; aspect-ratio: 14 / 20; background: ' + NOTE1 + ' center / contain no-repeat; ' +
+    'filter: drop-shadow(0 0 1.5px rgba(40, 25, 0, 0.45)); opacity: 0; will-change: transform, opacity; animation: np-note-a 3.6s ease-out infinite; } ' +
+    'np-birds[music-down] s.dn, np-birds[music-up] s.up { display: block; } np-birds s.up { left: 56vw; bottom: 79vw; } np-birds s.up.l { left: 39vw; } ' +
+    'np-birds s.n2 { margin-left: 2.5vw; width: 5.4vw; aspect-ratio: 22 / 20; background-image: ' + NOTE2 + '; animation-name: np-note-b; animation-delay: -0.9s; } ' +
+    'np-birds s.n3 { margin-left: 5vw; width: 3vw; animation-delay: -1.8s; } ' +
+    'np-birds s.n4 { margin-left: -1.5vw; width: 4.6vw; aspect-ratio: 22 / 20; background-image: ' + NOTE2 + '; animation-name: np-note-b; animation-delay: -2.7s; } ' +
+    'np-birds s.up { animation-duration: 4.1s; } np-birds s.up.l { animation-duration: 4.5s; margin-top: 0; animation-delay: -2.2s; } np-birds s.up.l.n2 { animation-delay: -0.4s; } np-birds s.up.l.n3 { animation-delay: -3.3s; } ' +
+    '@keyframes np-note-a { 0% { opacity: 0; transform: translate(0, 0) scale(0.6) rotate(-10deg); } 15% { opacity: 1; } ' +
+    '55% { transform: translate(2.5vw, -7vw) scale(1) rotate(8deg); } 100% { opacity: 0; transform: translate(-1vw, -14vw) scale(0.9) rotate(-6deg); } } ' +
+    '@keyframes np-note-b { 0% { opacity: 0; transform: translate(0, 0) scale(0.6) rotate(8deg); } 15% { opacity: 1; } ' +
+    '55% { transform: translate(-2.5vw, -7vw) scale(1) rotate(-8deg); } 100% { opacity: 0; transform: translate(1.5vw, -14vw) scale(0.9) rotate(6deg); } } ' +
+    '@media (min-width: 871px) { np-birds s { display: none !important; } } ' +
+    'np-birds b { position: absolute; left: 0; will-change: transform; animation: linear infinite; } ' +
+    'np-birds b i { position: absolute; display: block; background: ' + BIRD + ' center / contain no-repeat; animation: np-bob ease-in-out infinite alternate; } ' +
+    // each bird (or the little flock) crosses in a few seconds and then waits off-screen for the rest of its cycle
+    BIRDS.map((b, n) => {
+      const cross = Math.round(b.cross / b.dur * 1000) / 10;
+      const [from, to] = b.rtl ? ['calc(100vw + 40px)', '-40px'] : ['-40px', 'calc(100vw + 40px)'];
+      return 'np-birds .b' + n + ' { top: ' + b.top + '%; animation-name: np-fly' + n + '; animation-duration: ' + b.dur + 's; animation-delay: -' + b.delay + 's; } ' +
+        '@keyframes np-fly' + n + ' { 0% { transform: translateX(' + from + '); } ' + cross + '% { transform: translateX(' + to + '); } 100% { transform: translateX(' + to + '); } } ';
+    }).join('') +
+    // the dog walks over the grass in front of the hedge (phones only: on wide screens the drawing is cropped differently)
+    'np-birds u { position: absolute; left: 0; bottom: 29.5vw; width: 11vw; aspect-ratio: 64 / 40; background: ' + DOG + ' center / contain no-repeat; ' +
+    'will-change: transform; animation: np-walk 80s linear infinite; animation-delay: -18s; } ' +
+    'np-birds[dim] u { filter: brightness(0.72) saturate(0.85); } ' +
+    '@media (min-width: 871px) { np-birds u { display: none; } } ' +
+    '@keyframes np-walk { 0% { transform: translateX(-12vw) scaleX(1); } 14% { transform: translateX(101vw) scaleX(1); } 15%, 50% { transform: translateX(101vw) scaleX(-1); } ' +
+    '64% { transform: translateX(-12vw) scaleX(-1); } 65%, 100% { transform: translateX(-12vw) scaleX(1); } } ' +
+    '@keyframes np-bob { from { transform: translateY(-4px); } to { transform: translateY(5px); } } ' +
+    '@media (prefers-reduced-motion: reduce) { np-birds { display: none !important; } }';
+  const BIRD_WEATHER = ['sunny', 'partlycloudy', 'cloudy', 'windy', 'windy-variant', 'snowsun'];
+  // ---- Layered scene ---------------------------------------------------------------------------------------
+  // The drawing is split on the phone into stacked layers: the sky with its slow clouds, the static trees/house/hedge
+  // (drawn once), and every moving part (rain, snow, wind, leaves, lightning) as its own small image that the page
+  // moves with transforms/opacity. The heavy drawing is then never redrawn per frame, which keeps the iPhone smooth.
+  const NONPAINT = new Set(['defs', 'mask', 'clipPath', 'linearGradient', 'radialGradient', 'filter', 'pattern', 'symbol',
+    'style', 'title', 'desc', 'metadata', 'animate', 'animateTransform', 'set']);
+  const SCENE_CSS = 'np-scene { position: absolute; z-index: -1; pointer-events: none; left: 0; width: 100%; overflow: hidden; ' +
+    'top: calc(-1 * (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); ' +
+    'background: var(--np-sky, #2c3245); ' +
+    '-webkit-mask: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%) top / 100% 100% no-repeat; mask: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%) top / 100% 100% no-repeat; ' +
+    'animation: np-house-stay linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
+    'np-scene::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 86%, color-mix(in srgb, var(--primary-background-color) 15%, transparent) 90%, ' +
+    'color-mix(in srgb, var(--primary-background-color) 50%, transparent) 94%, color-mix(in srgb, var(--primary-background-color) 85%, transparent) 98%, var(--primary-background-color) 100%); } ' +
+    'np-scene .stage { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 887 / 1662; } ' +
+    'np-scene .stage > i { position: absolute; display: block; background: center / 100% 100% no-repeat; } ' +
+    'np-scene .stage > i.full { inset: 0; } np-scene .stage > i.mask { overflow: hidden; } ' +
+    'np-scene .stage > i.mask > i { position: absolute; left: 0; width: 100%; display: block; background: center / 100% 100% no-repeat; } ' +
+    'np-scene .stage > i.ov { background-image: var(--np-ov, none); } ' +
+    // the old single-image layer goes away completely (also its sky colour, which would shine through the bottom fade)
+    'ha-card[np-layered]::before { background: none !important; } ' +
+    // scenes sit a bit lower than before so more of the grass (and the dog) shows; phones only
+    '@media (min-width: 0px) { ha-card[np-layered] { margin-bottom: var(--np-scenes-offset, calc(-20.44vw - 4px)) !important; } }';
+  const esc = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  const openTag = (el, skip) => '<' + el.localName + [...el.attributes].filter((a) => !skip.includes(a.name) && !a.name.startsWith('data-np'))
+    .map((a) => ' ' + a.name + '="' + esc(a.value) + '"').join('') + '>';
+  const nums = (s) => s.split(/\s+/).map(Number);
+  let scene = null;  // { slug, urls, layers: [{ el, kind, box, anim }] }
+  const buildScene = (text, slug) => {
+    const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+    const root = doc.documentElement;
+    if (root.localName !== 'svg') throw new Error('not an svg');
+    // paint units in drawing order (definitions are kept in every layer, never counted)
+    const units = [];
+    const walk = (el) => {
+      for (const c of el.children) {
+        if (NONPAINT.has(c.localName)) continue;
+        if (c.hasAttribute('data-np') || c.hasAttribute('data-np-cloud') || !c.firstElementChild || c.localName === 'use') units.push(c);
+        else walk(c);
+      }
+    };
+    walk(root);
+    const segs = [];
+    let cur = [];
+    units.forEach((u, i) => {
+      u.setAttribute('data-np-i', i);
+      const kind = u.getAttribute('data-np') === 'light' ? null : u.getAttribute('data-np');
+      if (kind) {
+        if (cur.length) { segs.push({ kind: 'static', ids: cur }); cur = []; }
+        if (u.getAttribute('display') !== 'none') segs.push({ kind, el: u });
+      } else {
+        cur.push(String(i));
+        if (u.hasAttribute('data-np-break')) { segs.push({ kind: 'static', ids: cur }); cur = []; }
+      }
+    });
+    if (cur.length) segs.push({ kind: 'static', ids: cur });
+    const ser = new XMLSerializer();
+    const defs = [...root.querySelectorAll('defs, mask, clipPath, linearGradient, radialGradient, filter, pattern')]
+      .filter((d) => !d.parentElement.closest('defs, mask, clipPath, linearGradient, radialGradient, filter, pattern'))
+      .map((d) => ser.serializeToString(d)).join('');
+    const urls = [];
+    const blob = (svg) => { const u = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })); urls.push(u); return u; };
+    // one moving part on its own: its ancestors (for inherited paint and transforms, but without the canvas clip,
+    // because the part itself moves) plus all definitions
+    const partSvg = (el, viewBox, extra, keepClip) => {
+      const chain = [];
+      for (let p = el.parentElement; p && p !== root; p = p.parentElement) chain.unshift(p);
+      const self = el.cloneNode(true);
+      for (const a of [...self.attributes]) if (a.name.startsWith('data-np')) self.removeAttribute(a.name);
+      // keep the drawing's own root attributes (Figma sets fill="none" there, which the strokes rely on)
+      const rootAttrs = [...root.attributes].filter((a) => !['width', 'height', 'viewBox', 'xmlns'].includes(a.name))
+        .map((a) => ' ' + a.name + '="' + esc(a.value) + '"').join('');
+      return '<svg xmlns="http://www.w3.org/2000/svg"' + rootAttrs + ' viewBox="' + viewBox + '" preserveAspectRatio="none">' + defs +
+        chain.map((p) => openTag(p, keepClip ? ['id'] : ['clip-path', 'mask', 'id'])).join('') + ser.serializeToString(self) + (extra || '') +
+        chain.map((p) => '</' + p.localName + '>').reverse().join('') + '</svg>';
+    };
+    const layers = [];
+    for (const sg of segs) {
+      const L = { kind: sg.kind };
+      if (sg.kind === 'static') {
+        const keep = new Set(sg.ids);
+        const c = root.cloneNode(true);
+        for (const u of c.querySelectorAll('[data-np-i]')) if (!keep.has(u.getAttribute('data-np-i'))) u.remove();
+        L.url = blob(ser.serializeToString(c));
+        L.smil = !!c.querySelector('animateTransform, animate');
+        // living-room light in this layer: also a version without it, swapped in when the lamps are off
+        const lights = [...c.querySelectorAll('[data-np="light"]')];
+        if (lights.length) {
+          L.room = lights[0].getAttribute('data-room') || 'down';
+          lights.forEach((x) => x.remove());
+          L.urlOff = blob(ser.serializeToString(c));
+        }
+        layers.push(L);
+        continue;
+      }
+      const el = sg.el, id = el.getAttribute('id');
+      const box = el.hasAttribute('data-box') ? nums(el.getAttribute('data-box')) : [0, 0, 887, 1662];
+      const dur = Number(el.getAttribute('data-dur') || 0) * 1000;
+      if (sg.kind === 'fall') {
+        const d = Number(el.getAttribute('data-d')), copy = el.getAttribute('data-copy') === '1';
+        L.box = [0, -d, 887, 1662];
+        L.url = blob(partSvg(el, '0 ' + -d + ' 887 ' + (1662 + d), copy ? '<use href="#' + id + '" y="' + -d + '"/>' : ''));
+        L.anim = (u) => [[{ transform: 'translateY(0)' }, { transform: 'translateY(' + d * u + 'px)' }], { duration: dur, iterations: Infinity }];
+      } else if (sg.kind === 'lamp') {
+        const d = Number(el.getAttribute('data-d'));
+        const [x0, y0, x1, y1] = box;
+        L.box = box; L.inner = [y0 - d, y1];
+        L.url = blob(partSvg(el, x0 + ' ' + (y0 - d) + ' ' + (x1 - x0) + ' ' + (y1 - y0 + d), '<use href="#' + id + '" y="' + -d + '"/>'));
+        L.anim = (u) => [[{ transform: 'translateY(0)' }, { transform: 'translateY(' + d * u + 'px)' }], { duration: dur, iterations: Infinity }];
+      } else if (sg.kind === 'streak') {
+        const W = Number(el.getAttribute('data-w'));
+        L.box = [-W, box[1], 887, box[3]];
+        L.url = blob(partSvg(el, -W + ' ' + box[1] + ' ' + (887 + W) + ' ' + (box[3] - box[1]), '<use href="#' + id + '" x="' + -W + '"/>'));
+        L.anim = (u) => [[{ transform: 'translateX(0)' }, { transform: 'translateX(' + W * u + 'px)' }], { duration: dur, iterations: Infinity }];
+      } else if (sg.kind === 'leaf') {
+        const [a, b, rise, spin, ldur, begin] = nums(el.getAttribute('data-k'));
+        L.box = box;
+        L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
+        L.anim = (u) => [[{ transform: 'translate(' + a * u + 'px,' + rise * 0.4 * u + 'px) rotate(0deg)' },
+          { transform: 'translate(' + (a + b) / 2 * u + 'px,' + -rise * 0.3 * u + 'px) rotate(' + spin / 2 + 'deg)' },
+          { transform: 'translate(' + b * u + 'px,' + -rise * u + 'px) rotate(' + spin + 'deg)' }],
+          { duration: ldur * 1000, iterations: Infinity, delay: -begin * 1000 }];
+      } else if (sg.kind === 'cloud') {
+        // sways back and forth (or breathes, for clouds running edge to edge), smooth and composited
+        L.box = box;
+        L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
+        const opt = { duration: dur, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out', delay: -Number(el.getAttribute('data-begin') || 0) * 1000 };
+        if (el.hasAttribute('data-breathe')) {
+          const k = 1 + Number(el.getAttribute('data-breathe'));
+          L.anim = () => [[{ transform: 'scaleX(1)' }, { transform: 'scaleX(' + k + ')' }], opt];
+        } else {
+          const l = Number(el.getAttribute('data-l')), r = Number(el.getAttribute('data-r'));
+          L.anim = (u) => [[{ transform: 'translateX(' + -l * u + 'px)' }, { transform: 'translateX(' + r * u + 'px)' }], opt];
+        }
+      } else if (sg.kind === 'bolt' || sg.kind === 'glow' || sg.kind === 'dark') {
+        const cyc = Number(el.getAttribute('data-cyc')) * 1000;
+        const v = sg.kind === 'bolt' ? [0, 0, 1, 0.15, 1, 0, 0] : sg.kind === 'glow' ? [0.35, 0.35, 1, 0.5, 1, 0.35, 0.35] : [1, 1, 0, 0.6, 0, 1, 1];
+        const off = sg.kind === 'bolt' ? [0, 0.85, 0.86, 0.87, 0.885, 0.91, 1] : [0, 0.85, 0.86, 0.87, 0.885, 0.93, 1];
+        L.box = box;
+        // the dark storm layer is a plain colour with Jente's opacity; the flash multiplies into it
+        const alpha = sg.kind === 'dark' ? Number(el.getAttribute('fill-opacity') || 1) : 1;
+        if (sg.kind === 'dark') L.color = el.getAttribute('fill') || '#1e2430';
+        else L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
+        L.anim = () => [v.map((o, k) => ({ opacity: o * alpha, offset: off[k] })), { duration: cyc, iterations: Infinity }];
+      }
+      layers.push(L);
+    }
+    // the windows/cat overlay goes above the house (and the storm darkening), below rain, snow and wind
+    let at = 0;
+    layers.forEach((L, k) => { if (['static', 'dark', 'bolt', 'glow'].includes(L.kind)) at = k + 1; });
+    layers.splice(at, 0, { kind: 'ov' });
+    return { slug, urls, layers };
+  };
+  let lamps = { down: true, up: true };
+  const setLights = (down, up) => {
+    lamps = { down, up };
+    if (scene) for (const L of scene.layers) if (L.urlOff && L.node) L.node.style.backgroundImage = 'url("' + ((L.room === 'up' ? up : down) ? L.url : L.urlOff) + '")';
+  };
+  const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const placeScene = (stage) => {
+    if (!scene) return;
+    const u = stage.clientWidth / 887;
+    if (!u) return;
+    for (const L of scene.layers) {
+      const el = L.node;
+      if (L.box) {
+        const [x0, y0, x1, y1] = L.box;
+        Object.assign(el.style, { left: x0 * u + 'px', top: y0 * u + 'px', width: (x1 - x0) * u + 'px', height: (y1 - y0) * u + 'px' });
+      }
+      if (L.inner) Object.assign(L.target.style, { top: (L.inner[0] - L.box[1]) * u + 'px', height: (L.inner[1] - L.inner[0]) * u + 'px' });
+      if (L.anim && !still) {
+        const [kf, opt] = L.anim(u);
+        if (L.running) L.running.effect.setKeyframes(kf);
+        else L.running = L.target.animate(kf, opt);
+      }
+    }
+  };
+  const showScene = (hc, next) => {
+    const sr = hc.getRootNode();
+    if (!sr.querySelector('style[data-np-scene]')) {
+      const st = document.createElement('style');
+      st.setAttribute('data-np-scene', '');
+      st.textContent = SCENE_CSS;
+      sr.appendChild(st);
+    }
+    let ns = hc.querySelector('np-scene');
+    if (!ns) {
+      ns = document.createElement('np-scene');
+      ns.innerHTML = '<div class="stage"></div>';
+      hc.insertBefore(ns, hc.querySelector('np-birds'));
+      new ResizeObserver(() => placeScene(ns.firstChild)).observe(ns.firstChild);
+    }
+    const stage = ns.firstChild;
+    const frag = document.createDocumentFragment();
+    for (const L of next.layers) {
+      if (L.running) { L.running.cancel(); L.running = null; }
+      const el = document.createElement('i');
+      L.node = L.target = el;
+      if (L.kind === 'static' || L.kind === 'ov') el.className = 'full' + (L.kind === 'ov' ? ' ov' : '');
+      if (L.kind === 'dark') el.style.background = L.color;
+      if (L.url && L.kind !== 'lamp') el.style.backgroundImage = 'url("' + L.url + '")';
+      if (L.kind === 'lamp') {
+        el.className = 'mask';
+        el.style.webkitMaskImage = el.style.maskImage = 'radial-gradient(closest-side, #000 55%, transparent 100%)';
+        const inner = document.createElement('i');
+        inner.style.backgroundImage = 'url("' + L.url + '")';
+        el.appendChild(inner);
+        L.target = inner;
+      }
+      if (L.anim) el.style.willChange = L.kind === 'bolt' || L.kind === 'glow' || L.kind === 'dark' ? 'opacity' : 'transform';
+      if (L.kind === 'leaf') el.style.transformOrigin = 'center';
+      frag.appendChild(el);
+    }
+    const old = scene;
+    stage.replaceChildren(frag);
+    scene = next;
+    placeScene(stage);
+    hc.setAttribute('np-layered', '');
+    setLights(lamps.down, lamps.up);
+    if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
+  };
+
+  const WX = [['sunny','Zonnig'],['partlycloudy','Half bewolkt'],['cloudy','Bewolkt'],['fog','Mist'],['rainy','Regen'],['pouring','Stortregen'],
+    ['lightning','Onweer'],['lightning-rainy','Onweersbui'],['snowy','Sneeuw'],['snowy-rainy','Natte sneeuw'],['sleet','Natte sneeuw met sneeuwdek'],
+    ['snowsun','Sneeuw zonnig'],['windy','Winderig'],['windy-variant','Winderig en bewolkt']];
+  const LIT_UP = ['sunny-night', 'partlycloudy-night', 'windy-night', 'snowsun-night'];
+  const $ = (id) => document.getElementById(id);
+  for (const [v, n] of WX) { const o = document.createElement('option'); o.value = v; o.textContent = n; $('wx').appendChild(o); }
+  const host = $('host'); const sr = host.attachShadow({ mode: 'open' });
+  sr.innerHTML = `<style>
+    ha-card{display:block;position:relative;aspect-ratio:2400/3690;--header-height:56px;margin-top:32px;margin-bottom:calc(-81.76px - 28px);padding:44px 20px 0;box-sizing:border-box;color:#fff;font-family:inherit}
+    @media (min-width:0){ha-card{margin-bottom:calc(-81.76px - 28px)}}
+    ha-card::before{content:'';position:absolute;z-index:-1;top:-56px;left:0;width:100%;height:calc(100% + 56px);background:var(--np-house,none) center bottom/100% auto no-repeat var(--np-sky,#2c3245)}
+    @keyframes np-house-stay{from{transform:translateY(0)}to{transform:translateY(1000px)}}
+    h2{margin:0;font-size:28px;text-shadow:0 1px 10px #0003}p{margin:6px 0 0;font-size:14px;color:#ffffffe0;max-width:72%}
+    .scenes{display:flex;gap:10px;padding:0 20px 20px;position:relative;overflow-x:auto;scrollbar-width:none}.scenes::-webkit-scrollbar{display:none}.scenes i{flex:0 0 100px;height:120px;border-radius:14px;background:var(--card,#2b2b2b)}.scenes::after{content:'';flex:0 0 10px}
+    .rest{padding:20px;display:grid;gap:12px}.rest i{display:block;height:90px;border-radius:14px;background:var(--card,#2b2b2b)}
+  </style><ha-card><div><h2>Good evening, Jente!</h2><p>Testpagina · zelfde lagen als op het dashboard</p></div></ha-card>
+  <div class="scenes"><i></i><i></i><i></i><i></i><i></i></div><div class="rest"><i></i><i></i><i></i><i></i></div>`;
+  const hc = sr.querySelector('ha-card');
+  host.style.setProperty('--np-scenes-offset', 'calc(-81.76px - 4px)');  // 20.44vw of the 400px phone
+  // the bird/dog/notes layer, exactly as the dashboard script builds it
+  const st = document.createElement('style'); st.textContent = BIRD_CSS.replace(/@media \(min-width: 871px\)/g, '@media (min-width: 99999px)').replace(/100vw/g, '400px').replace(/(\d+(?:\.\d+)?)vw/g, (m, n) => (n * 4) + 'px'); sr.appendChild(st);
+  const nb = document.createElement('np-birds'); nb.innerHTML = birdHTML + '<u></u><s class="dn"></s><s class="dn n2"></s><s class="dn n3"></s><s class="dn n4"></s><s class="up"></s><s class="up n2"></s><s class="up n3"></s><s class="up n4"></s><s class="up l"></s><s class="up l n2"></s><s class="up l n3"></s>'; hc.appendChild(nb);
+  let busy = 0;
+  const render = async () => {
+    const wx = $('wx').value, tod = $('tod').value, slug = wx + '-' + tod;
+    const down = $('down').checked, up = $('up').checked;
+    document.documentElement.style.setProperty('--np-sky', SKY[slug] || '#2c3245');
+    document.documentElement.style.setProperty('--np-ov', 'url("data:image/svg+xml;charset=utf-8,' + OV.head + (up ? OV.upOn : (LIT_UP.includes(slug) ? OV.upOff : '')) +
+      (down ? '' : (tod === 'day' ? OV.downDay : OV.downNight)) + (up || tod === 'day' ? OV.cat : OV.sil) + OV.tail + '")');
+    nb.toggleAttribute('show', BIRD_WEATHER.includes(wx) && tod !== 'night');
+    nb.toggleAttribute('dim', tod === 'dawn' || tod === 'dusk');
+    nb.toggleAttribute('music-down', $('music').checked);
+    nb.toggleAttribute('music-up', $('musicup').checked);
+    const me = ++busy;
+    const t0 = performance.now();
+    const text = await fetch('hh_prep/' + slug + '.svg').then((r) => r.text());
+    if (me !== busy) return;
+    const t1 = performance.now();
+    const sc = buildScene(text, slug);
+    showScene(hc, sc);
+    setLights(down, up);
+    const t2 = performance.now();
+    $('info').textContent = slug + '\nladen ' + Math.round(t1 - t0) + ' ms · lagen bouwen ' + Math.round(t2 - t1) + ' ms\n' +
+      sc.layers.length + ' lagen: ' + sc.layers.map((l) => l.kind).join(', ');
+    history.replaceState(null, '', '#' + slug);
+  };
+  const step = (d) => {
+    const all = WX.flatMap(([w]) => ['dawn', 'day', 'dusk', 'night'].map((t) => [w, t]));
+    let i = all.findIndex(([w, t]) => w === $('wx').value && t === $('tod').value);
+    i = (i + d + all.length) % all.length;
+    $('wx').value = all[i][0]; $('tod').value = all[i][1]; render();
+  };
+  for (const id of ['wx', 'tod', 'down', 'up', 'music', 'musicup']) $(id).addEventListener('change', render);
+  $('light').addEventListener('change', () => {
+    const l = $('light').checked;
+    document.documentElement.style.setProperty('--primary-background-color', l ? '#f2f2f2' : '#1c1c1c');
+    host.style.setProperty('--card', l ? '#fff' : '#2b2b2b');
+  });
+  // start a pass right now instead of waiting for the next one (only visible in dry weather and not at night)
+  const restart = (els) => { for (const el of els) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; el.style.animationDelay = '0s'; } };
+  $('dog').onclick = () => restart(nb.querySelectorAll('u'));
+  $('birds').onclick = () => restart(nb.querySelectorAll('b'));
+  $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
+  addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); });
+  const h = location.hash.slice(1).match(/^(.+)-(dawn|day|dusk|night)$/);
+  if (h) { $('wx').value = h[1]; $('tod').value = h[2]; } else { $('wx').value = 'cloudy'; $('tod').value = 'day'; }
+  render().catch((e) => { $('info').textContent = 'Fout: ' + e.message; });
+})();
+</script></html>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 40">
+<defs>
+<linearGradient id="fur" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98b55"/><stop offset="1" stop-color="#a86d3f"/></linearGradient>
+<linearGradient id="furD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93592f"/><stop offset="1" stop-color="#7a4826"/></linearGradient>
+</defs>
+<ellipse cx="31" cy="37.6" rx="17" ry="1.8" fill="#1d2a1a" opacity="0.22"/>
+<g>
+<animateTransform attributeName="transform" type="translate" values="0 0;0 -0.7;0 0;0 -0.7;0 0" dur="0.56s" repeatCount="indefinite"/>
+<!-- far legs (darker, behind the body) -->
+<path d="M19.5 22 h3.4 v13.3 a1.7 1.7 0 0 1 -3.4 0 z" fill="url(#furD)"><animateTransform attributeName="transform" type="rotate" values="20 21.2 22;-20 21.2 22;20 21.2 22" dur="0.56s" repeatCount="indefinite"/></path>
+<path d="M39.5 22 h3.4 v13.3 a1.7 1.7 0 0 1 -3.4 0 z" fill="url(#furD)"><animateTransform attributeName="transform" type="rotate" values="-20 41.2 22;20 41.2 22;-20 41.2 22" dur="0.56s" repeatCount="indefinite"/></path>
+<!-- tail -->
+<path d="M15 18 C10 16 8 12 9 7" fill="none" stroke="#a86d3f" stroke-width="3" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="-14 15 18;12 15 18;-14 15 18" dur="0.42s" repeatCount="indefinite"/></path>
+<!-- body -->
+<rect x="13" y="13" width="33" height="13.5" rx="6.8" fill="url(#fur)"/>
+<path d="M20 24.8 Q30 27.6 40 24.8 L40 26.2 Q30 28.6 20 26.2 Z" fill="#f1dcbc" opacity="0.55"/>
+<!-- near legs -->
+<path d="M15.8 21 h3.6 v14.3 a1.8 1.8 0 0 1 -3.6 0 z" fill="url(#fur)"><animateTransform attributeName="transform" type="rotate" values="-20 17.6 21;20 17.6 21;-20 17.6 21" dur="0.56s" repeatCount="indefinite"/></path>
+<path d="M36 21 h3.6 v14.3 a1.8 1.8 0 0 1 -3.6 0 z" fill="url(#fur)"><animateTransform attributeName="transform" type="rotate" values="20 37.8 21;-20 37.8 21;20 37.8 21" dur="0.56s" repeatCount="indefinite"/></path>
+<!-- neck and head -->
+<path d="M40 18 Q44 9 50 8 L52 15 Q47 17 45 22 Z" fill="url(#fur)"/>
+<circle cx="50.5" cy="10.5" r="6.6" fill="url(#fur)"/>
+<ellipse cx="56.6" cy="13" rx="5.2" ry="3.6" fill="#e8c79c"/>
+<circle cx="61" cy="11.9" r="1.6" fill="#2a1d16"/>
+<circle cx="52.6" cy="8.6" r="1.05" fill="#2a1d16"/>
+<path d="M45.4 5.6 Q42 7 43 14.2 Q46.6 12.6 47.8 7.4 Z" fill="url(#furD)"/>
+<!-- collar -->
+<path d="M44.2 15.4 Q47 19.6 51.4 16.6" fill="none" stroke="#d64545" stroke-width="1.8" stroke-linecap="round"/>
+</g>
+</svg>
