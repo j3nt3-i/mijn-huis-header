@@ -72,7 +72,7 @@ __SKY____OV____CRITTERS____WEATHER__
   const host = $('host'); const sr = host.attachShadow({ mode: 'open' });
   sr.innerHTML = `<style>
     ha-card{display:block;position:relative;aspect-ratio:2400/3690;--header-height:56px;margin-top:32px;margin-bottom:calc(-81.76px - 4px);padding:44px 20px 0;box-sizing:border-box;color:#fff;font-family:inherit}
-    @media (min-width:0){ha-card{margin-bottom:calc(-81.76px - 28px)}}
+    @media (min-width:0){ha-card{margin-bottom:calc(-81.76px - 52px)}}
     ha-card::before{content:'';position:absolute;z-index:-1;top:-56px;left:0;width:100%;height:calc(100% + 56px);background:var(--np-house,none) center bottom/100% auto no-repeat var(--np-sky,#2c3245)}
     @keyframes np-house-stay{from{transform:translateY(0)}to{transform:translateY(1000px)}}
     h2{margin:0;font-size:28px;text-shadow:0 1px 10px #0003}p{margin:6px 0 0;font-size:14px;color:#ffffffe0;max-width:72%}
@@ -82,6 +82,13 @@ __SKY____OV____CRITTERS____WEATHER__
     .scenes.new .sc .ic{width:44px;height:44px;background:color-mix(in srgb,rgb(var(--c)) 45%,#fff);color:#1d1d1f}.scenes.new .sc .ic svg{width:22px;height:22px}
     .scenes.new .sc b{margin-top:auto;font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
     .scenes.new .sc small{margin-top:3px;font-size:13px;color:var(--sub,#a0a0a0)}
+    @keyframes np-pop{0%{transform:scale(1)}35%{transform:scale(1.18)}65%{transform:scale(.94)}100%{transform:scale(1)}}
+    @keyframes np-spin{from{transform:rotate(0)}to{transform:rotate(180deg)}}
+    @keyframes np-bounce{0%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}55%{transform:translateY(1px)}75%{transform:translateY(-1.5px)}}
+    @keyframes np-tilt{0%,100%{transform:rotate(0)}30%{transform:rotate(-12deg)}60%{transform:rotate(6deg)}}
+    @keyframes np-rock{0%,100%{transform:rotate(0)}25%{transform:rotate(-25deg)}55%{transform:rotate(12deg)}80%{transform:rotate(-5deg)}}
+    @keyframes np-run{0%,100%{transform:translateX(0)}40%{transform:translateX(6px)}70%{transform:translateX(-2px)}}
+    .scenes.new .sc.on .ic{animation:np-pop .5s cubic-bezier(.2,.8,.2,1)}.scenes.new .sc.on .ic svg{animation:var(--anim)}
     .scenes.new .sc.on{background:color-mix(in srgb,rgb(var(--c)) 50%,#fff);color:#1d1d1f}.scenes.new .sc.on .ic{background:#fff}.scenes.new .sc.on small{color:rgba(0,0,0,.55)}
     .scenes::after{content:'';flex:0 0 10px}
     .rest{padding:20px;display:grid;gap:12px}.rest i{display:block;height:90px;border-radius:14px;background:var(--card,#2b2b2b)}
@@ -115,6 +122,7 @@ __SKY____OV____CRITTERS____WEATHER__
       const el = document.createElement('div');
       el.className = 'sc' + (i === 0 ? ' on' : '');
       el.style.setProperty('--c', rgb);
+      el.style.setProperty('--anim', { sun: 'np-spin .9s cubic-bezier(.2,.8,.2,1)', sofa: 'np-bounce .7s ease-out', bed: 'np-tilt .7s ease-in-out', sleep: 'np-rock .9s ease-in-out', exit: 'np-run .6s ease-in-out' }[icon]);
       el.innerHTML = '<span class="ic">' + svgIcon(MDI[icon]) + '</span><b>' + name + '</b><small>' + devices + '</small>';
       el.onclick = () => { scenesEl.querySelectorAll('.sc').forEach((x) => x.classList.toggle('on', x === el)); };
       scenesEl.appendChild(el);

@@ -406,8 +406,8 @@
     'np-scene .pin { position: absolute; inset: 0; background: var(--np-sky, #2c3245); will-change: transform; ' +
     'animation: np-pin linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
     '@keyframes np-pin { from { transform: translateY(0); } to { transform: translateY(1000px); } } ' +
-    'np-scene .pin::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 86%, color-mix(in srgb, var(--primary-background-color) 15%, transparent) 90%, ' +
-    'color-mix(in srgb, var(--primary-background-color) 50%, transparent) 94%, color-mix(in srgb, var(--primary-background-color) 85%, transparent) 98%, var(--primary-background-color) 100%); } ' +
+    'np-scene .pin::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 90%, color-mix(in srgb, var(--primary-background-color) 15%, transparent) 93%, ' +
+    'color-mix(in srgb, var(--primary-background-color) 50%, transparent) 96%, color-mix(in srgb, var(--primary-background-color) 85%, transparent) 99%, var(--primary-background-color) 100%); } ' +
     'np-scene .stage { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 887 / 1662; transform-origin: 50% 65%; } ' +
     'np-scene .stage > i { position: absolute; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.full { inset: 0; } np-scene .stage > i.mask { overflow: hidden; } ' +
