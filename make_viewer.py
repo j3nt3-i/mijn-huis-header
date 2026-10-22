@@ -23,14 +23,21 @@ button{cursor:pointer}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .check{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:#ddd}
 .info{font:12px ui-monospace,Menlo,monospace;color:#888;white-space:pre-wrap;line-height:1.5}
+.bar{position:absolute;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 6px;z-index:2;pointer-events:none;color:#fff}
+.bar>*{display:flex;align-items:center;justify-content:center}
+.bar .ic{width:44px;height:44px}.bar svg{width:24px;height:24px;fill:currentColor}
+.bar .seg{gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);margin-top:8px}
+.bar .seg span{width:58px;height:34px;border-radius:999px;display:flex;align-items:center;justify-content:center}.bar .seg span.on{background:rgba(255,255,255,.3)}
+.bar .seg svg{width:22px;height:22px}
 .hint{font-size:12px;color:#888;line-height:1.5}
 </style>
-<div class="phone"><div class="scroller" id="scroller"><div id="host"></div></div></div>
+<div class="phone"><div class="bar" id="bar"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></span><span class="seg"><span class="on"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a2 2 0 0 1 2 2v5.3a3.5 3.5 0 1 1-4 0V8a2 2 0 0 1 2-2z"/></svg></span></span><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg></span></div><div class="scroller" id="scroller"><div id="host"></div></div></div>
 <div class="panel">
   <h1>Header testen</h1>
   <label>Weer<select id="wx"></select></label>
   <label>Dagdeel<select id="tod"><option value="dawn">Ochtendschemer</option><option value="day">Dag</option><option value="dusk">Avondschemer</option><option value="night">Nacht</option></select></label>
   <div class="row"><button id="prev">← Vorige</button><button id="next">Volgende →</button></div>
+  <button id="enter">▶ Laadanimatie afspelen</button>
   <label class="check"><input type="checkbox" id="down" checked> Lampen beneden aan</label>
   <label class="check"><input type="checkbox" id="up" checked> Lampen boven aan</label>
   <label class="check"><input type="checkbox" id="music"> Muziek beneden (woonkamer/keuken)</label>
@@ -105,11 +112,26 @@ __SKY____OV____CRITTERS____WEATHER__
   const restart = (els) => { for (const el of els) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; el.style.animationDelay = '0s'; } };
   $('dog').onclick = () => restart(nb.querySelectorAll('u'));
   $('birds').onclick = () => restart(nb.querySelectorAll('b'));
+  const playEntrance = async () => {
+    const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+    const view = host, bar = [...$('bar').children], sections = [...sr.querySelectorAll('.scenes, .rest > i')];
+    for (const el of [view, ...bar, ...sections]) el.style.opacity = '0';
+    $('scroller').scrollTop = 0;
+    await render();                                   // rebuild the layers, like a fresh page load
+    await new Promise((r) => setTimeout(r, 450));     // the dashboard waits until every layer is decoded
+    for (const el of [view, ...bar, ...sections]) el.style.opacity = '';
+    view.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-out', fill: 'backwards' });
+    bar.forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }],
+      { duration: 450, delay: 250 + i * 70, easing: ease, fill: 'backwards' }));
+    sections.forEach((el, k) => el.animate([{ opacity: 0, transform: 'translateY(36px)' }, { opacity: 1, transform: 'none' }],
+      { duration: 600, delay: 300 + k * 80, easing: ease, fill: 'backwards' }));
+  };
+  $('enter').onclick = playEntrance;
   $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
   addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); });
   const h = location.hash.slice(1).match(/^(.+)-(dawn|day|dusk|night)$/);
   if (h) { $('wx').value = h[1]; $('tod').value = h[2]; } else { $('wx').value = 'cloudy'; $('tod').value = 'day'; }
-  render().catch((e) => { $('info').textContent = 'Fout: ' + e.message; });
+  playEntrance().catch((e) => { $('info').textContent = 'Fout: ' + e.message; });  // like opening the dashboard
 })();
 </script></html>'''
 scene = scene.replace('@media (max-width: 870px) { ha-card[np-layered]', '@media (min-width: 0px) { ha-card[np-layered]')  # the phone frame is narrow, the window is not
