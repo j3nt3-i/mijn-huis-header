@@ -113,6 +113,8 @@ __SKY____OV____CRITTERS____WEATHER__
   const restart = (els) => { for (const el of els) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; el.style.animationDelay = '0s'; } };
   $('dog').onclick = () => restart(nb.querySelectorAll('u'));
   $('birds').onclick = () => restart(nb.querySelectorAll('b'));
+  const SLOW = Number(new URLSearchParams(location.search).get('slow') || 1);
+  const slowDown = () => { if (SLOW !== 1) for (const a of document.getAnimations()) if (a.effect && a.effect.getTiming().iterations !== Infinity) a.playbackRate = 1 / SLOW; };
   const playEntrance = async () => {
     if ($('style').value === 'apple') return playApple();
     const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -120,13 +122,14 @@ __SKY____OV____CRITTERS____WEATHER__
     for (const el of [view, ...bar, ...sections]) el.style.opacity = '0';
     $('scroller').scrollTop = 0;
     await render();                                   // rebuild the layers, like a fresh page load
-    await new Promise((r) => setTimeout(r, 450));     // the dashboard waits until every layer is decoded
+    await new Promise((r) => setTimeout(r, 450 * SLOW));     // the dashboard waits until every layer is decoded
     for (const el of [view, ...bar, ...sections]) el.style.opacity = '';
     view.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-out', fill: 'backwards' });
     bar.forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }],
       { duration: 450, delay: 250 + i * 70, easing: ease, fill: 'backwards' }));
     sections.forEach((el, k) => el.animate([{ opacity: 0, transform: 'translateY(36px)' }, { opacity: 1, transform: 'none' }],
       { duration: 600, delay: 300 + k * 80, easing: ease, fill: 'backwards' }));
+    slowDown();
   };
   // Apple-style: the bar and content are there at once; the house appears behind them (fade from the sky + slight zoom)
   const playApple = async () => {
@@ -135,13 +138,18 @@ __SKY____OV____CRITTERS____WEATHER__
     if (old) old.style.opacity = '0';
     nb.style.opacity = '0';
     await render();
-    await new Promise((r) => setTimeout(r, 450));     // the time the dashboard needs to decode the layers
+    await new Promise((r) => setTimeout(r, 450 * SLOW));     // the time the dashboard needs to decode the layers
     const ns = sr.querySelector('np-scene');
     ns.querySelector('.pin').style.opacity = ''; nb.style.opacity = '';
     appearHouse(ns, nb);
+    slowDown();
   };
   $('style').addEventListener('change', () => { try { localStorage.setItem('np-entrance', ENTRANCE); } catch (e) {} playEntrance(); });
   try { const s = localStorage.getItem('np-entrance'); if (s) $('style').value = s; } catch (e) {}
+  // ?style=cascade|apple picks the entrance, ?bare hides the controls (used by the side-by-side comparison)
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('style')) $('style').value = qs.get('style');
+  if (qs.has('bare')) { document.querySelector('.panel').style.display = 'none'; document.body.style.padding = '12px'; }
   $('enter').onclick = playEntrance;
   $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
   addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); });
