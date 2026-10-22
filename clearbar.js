@@ -32,8 +32,8 @@
     // weather preview button, right next to the segmented control
     '.np-wx-btn { position: absolute; top: 8px; width: 40px; height: 40px; padding: 0; border: none; border-radius: 999px; cursor: pointer; ' +
     'display: none; align-items: center; justify-content: center; color: inherit; background: rgba(var(--rgb-primary-text-color), 0.06); ' +
-    'transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), color 0.35s cubic-bezier(0.4, 0, 0.2, 1); -webkit-tap-highlight-color: transparent; } ' +
-    '.np-wx-btn ha-icon { --mdc-icon-size: 22px; } ' +
+    'transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1); -webkit-tap-highlight-color: transparent; } ' +
+    '.np-wx-btn ha-icon { --mdc-icon-size: 22px; color: inherit !important; transition: none !important; } ' +
     '.np-wx-btn[data-preview] { box-shadow: inset 0 0 0 2px currentColor; } ' +
     ':host([np-huis][np-test]) .np-wx-btn { display: flex; } ' +
     '.np-wx-panel { position: absolute; top: 56px; right: 8px; z-index: 10; display: none; flex-direction: column; gap: 10px; width: 220px; padding: 14px; border-radius: 16px; ' +
@@ -42,7 +42,7 @@
     '.np-wx-panel label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--secondary-text-color); } ' +
     '.np-wx-panel select { font: inherit; font-size: 15px; color: var(--primary-text-color); background: var(--secondary-background-color, #f2f2f2); border: none; border-radius: 10px; padding: 8px 10px; } ' +
     '.np-wx-panel button { font: inherit; font-size: 14px; border: none; border-radius: 10px; padding: 9px 10px; cursor: pointer; color: var(--text-primary-color, #fff); background: var(--primary-color); } ' +
-    ':host([np-clear]) .np-wx-btn { background: rgba(255, 255, 255, 0.16); color: #fff; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }';
+    ':host([np-clear]) .np-wx-btn { background: rgba(255, 255, 255, 0.16); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }';
   const WX_ICON = { 'Echt weer': 'mdi:weather-partly-cloudy', sunny: 'mdi:weather-sunny', partlycloudy: 'mdi:weather-partly-cloudy', cloudy: 'mdi:weather-cloudy',
     fog: 'mdi:weather-fog', rainy: 'mdi:weather-rainy', pouring: 'mdi:weather-pouring', snowy: 'mdi:weather-snowy', 'snowy-rainy': 'mdi:weather-snowy-rainy',
     lightning: 'mdi:weather-lightning', 'lightning-rainy': 'mdi:weather-lightning-rainy', windy: 'mdi:weather-windy', 'windy-variant': 'mdi:weather-windy-variant', snowsun: 'mdi:snowflake', sleet: 'mdi:weather-snowy-rainy' };
