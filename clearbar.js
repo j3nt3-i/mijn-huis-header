@@ -51,6 +51,9 @@
   const WX_NAME = { 'Echt weer': 'Echt weer', sunny: 'Zonnig', partlycloudy: 'Half bewolkt', cloudy: 'Bewolkt', fog: 'Mist', rainy: 'Regen',
     pouring: 'Stortregen', snowy: 'Sneeuw', 'snowy-rainy': 'Natte sneeuw', lightning: 'Onweer', 'lightning-rainy': 'Onweersbui', windy: 'Winderig', 'windy-variant': 'Winderig en bewolkt', snowsun: 'Sneeuw zonnig', sleet: 'Natte sneeuw met sneeuwdek' };
   const TOD_NAME = { echt: 'Volgt de zon', dawn: 'Ochtendschemer', day: 'Dag', dusk: 'Avondschemer', night: 'Nacht' };
+  // The greeting card that carries the illustration: it already has our layers, or its card-mod ::before paints the
+  // fade gradient (other title cards have no ::before). Works before the drawing has loaded, too.
+  const isHeaderCard = (hc) => !!hc && (!!hc.querySelector('np-scene, np-birds') || getComputedStyle(hc, '::before').backgroundImage.includes('gradient'));
   // Hidden test panel: tap the illustration 5 times to show the weather button (and 5 times to hide it).
   // The button opens a panel to pick a weather type and time of day; this only changes this device.
   const TEST_KEY = 'np-wx-test';
@@ -99,7 +102,7 @@
     // only the greeting card with the illustration behind it, not other title cards
     const card = ev.composedPath().find((n) => n.tagName === 'MUSHROOM-TITLE-CARD');
     const hc = card && card.shadowRoot && card.shadowRoot.querySelector('ha-card');
-    if (!hc || !(hc.querySelector('np-scene') || getComputedStyle(hc, '::before').backgroundImage.includes('huis-'))) return;
+    if (!isHeaderCard(hc)) return;
     const now = Date.now();
     taps = taps.filter((t) => now - t < 2500).concat(now);
     if (taps.length >= 5) {
@@ -149,7 +152,7 @@
   // How the Huis page comes in on a fresh load:
   //  'cascade' - hidden until the illustration is ready, then it fades in and bar + sections slide in one by one
   //  'apple'   - bar and content are there at once; only the house appears (fade from the sky + slight zoom)
-  const ENTRANCE = 'cascade';
+  const ENTRANCE = 'apple';
   const SIG_KEY = 'np-house-sig-14';  // bump when the SVGs are replaced, so browsers fetch the new ones
   let sigs = {};
   try { sigs = JSON.parse(localStorage.getItem(SIG_KEY) || '{}'); } catch (e) { sigs = {}; }
@@ -309,7 +312,7 @@
     for (const n of root.querySelectorAll('*')) {
       if (n.tagName === 'MUSHROOM-TITLE-CARD' && n.shadowRoot) {
         const hc = n.shadowRoot.querySelector('ha-card');
-        if (hc && (hc.querySelector('np-scene, np-birds') || getComputedStyle(hc, '::before').backgroundImage.includes('huis-'))) return n;
+        if (isHeaderCard(hc)) return n;
       }
       if (n.shadowRoot) { const f = findHeaderCard(n.shadowRoot); if (f) return f; }
     }
