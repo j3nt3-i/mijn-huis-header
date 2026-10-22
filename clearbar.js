@@ -413,10 +413,11 @@
     'np-scene .stage > i.full { inset: 0; } np-scene .stage > i.mask { overflow: hidden; } ' +
     'np-scene .stage > i.mask > i { position: absolute; left: 0; width: 100%; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.ov { background-image: var(--np-ov-l, none); } ' +
-    // the picture runs on 8px under the scene cards in the colour of its ground, so the fade into the page lands
-    // halfway down the cards
-    'np-scene[np-ext] { height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px)) + 8px); } np-scene[np-ext] .stage { bottom: 8px; } ' +
-    'np-scene[np-ext] .pin { background: linear-gradient(to bottom, var(--np-sky, #2c3245) calc(100% - 9px), var(--np-ground) calc(100% - 9px)); } ' +
+    // the fade into the page lands halfway down the scene cards: the picture stops 16px above the header card's bottom
+    // edge (the stage runs on under the clip); --np-run says how far it runs on, +N in the colour of its ground
+    'np-scene[np-ext] { --np-run: -16px; height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px)) + var(--np-run)); } ' +
+    'np-scene[np-ext] .stage { bottom: var(--np-run); } ' +
+    'np-scene[np-ext] .pin { background: linear-gradient(to bottom, var(--np-sky, #2c3245) calc(100% - var(--np-run) - 1px), var(--np-ground) calc(100% - var(--np-run) - 1px)); } ' +
     // the old single-image layer goes away completely (also its sky colour, which would shine through the bottom fade)
     'ha-card[np-layered]::before { background: none !important; }';
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');

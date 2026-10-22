@@ -135,10 +135,11 @@ button{cursor:pointer}
     'np-scene .stage > i.full { inset: 0; } np-scene .stage > i.mask { overflow: hidden; } ' +
     'np-scene .stage > i.mask > i { position: absolute; left: 0; width: 100%; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.ov { background-image: var(--np-ov-l, none); } ' +
-    // the picture runs on 8px under the scene cards in the colour of its ground, so the fade into the page lands
-    // halfway down the cards
-    'np-scene[np-ext] { height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px)) + 8px); } np-scene[np-ext] .stage { bottom: 8px; } ' +
-    'np-scene[np-ext] .pin { background: linear-gradient(to bottom, var(--np-sky, #2c3245) calc(100% - 9px), var(--np-ground) calc(100% - 9px)); } ' +
+    // the fade into the page lands halfway down the scene cards: the picture stops 16px above the header card's bottom
+    // edge (the stage runs on under the clip); --np-run says how far it runs on, +N in the colour of its ground
+    'np-scene[np-ext] { --np-run: -16px; height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px)) + var(--np-run)); } ' +
+    'np-scene[np-ext] .stage { bottom: var(--np-run); } ' +
+    'np-scene[np-ext] .pin { background: linear-gradient(to bottom, var(--np-sky, #2c3245) calc(100% - var(--np-run) - 1px), var(--np-ground) calc(100% - var(--np-run) - 1px)); } ' +
     // the old single-image layer goes away completely (also its sky colour, which would shine through the bottom fade)
     'ha-card[np-layered]::before { background: none !important; }';
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -854,7 +855,7 @@ button{cursor:pointer}
   const host = $('host'); const sr = host.attachShadow({ mode: 'open' });
   sr.innerHTML = `<style>
     ha-card{display:block;position:relative;aspect-ratio:2400/3690;--header-height:56px;margin-top:32px;margin-bottom:calc(-81.76px - 4px);padding:44px 20px 0;box-sizing:border-box;color:#fff;font-family:inherit}
-    @media (min-width:0){ha-card{margin-bottom:calc(-81.76px - 40px)}}
+    @media (min-width:0){ha-card{margin-bottom:calc(-81.76px - 10px)}}  /* = the dashboard's calc(-20.44vw - 40px) plus the 30px its sections add; cards overlap the picture 92px at 400px wide */
     ha-card::before{content:'';position:absolute;z-index:-1;top:-56px;left:0;width:100%;height:calc(100% + 56px);background:var(--np-house,none) center bottom/100% auto no-repeat var(--np-sky,#2c3245)}
     @keyframes np-house-stay{from{transform:translateY(0)}to{transform:translateY(1000px)}}
     h2{margin:0;font-size:28px;text-shadow:0 1px 10px #0003}p{margin:6px 0 0;font-size:14px;color:#ffffffe0;max-width:72%}
