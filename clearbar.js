@@ -402,17 +402,21 @@
   // inside it, .pin keeps the illustration still with a scroll-linked translate only, which the GPU can do.
   const SCENE_CSS = 'np-scene { position: absolute; z-index: -1; pointer-events: none; left: 0; width: 100%; overflow: hidden; ' +
     'top: calc(-1 * (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); ' +
-    '-webkit-mask: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%) top / 100% 100% no-repeat; mask: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%) top / 100% 100% no-repeat; } ' +
+    '-webkit-mask: linear-gradient(to bottom, #000 calc(100% - 20px), transparent 100%) top / 100% 100% no-repeat; mask: linear-gradient(to bottom, #000 calc(100% - 20px), transparent 100%) top / 100% 100% no-repeat; } ' +
     'np-scene .pin { position: absolute; inset: 0; background: var(--np-sky, #2c3245); will-change: transform; ' +
     'animation: np-pin linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
     '@keyframes np-pin { from { transform: translateY(0); } to { transform: translateY(1000px); } } ' +
-    'np-scene .pin::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 90%, color-mix(in srgb, var(--primary-background-color) 15%, transparent) 93%, ' +
-    'color-mix(in srgb, var(--primary-background-color) 50%, transparent) 96%, color-mix(in srgb, var(--primary-background-color) 85%, transparent) 99%, var(--primary-background-color) 100%); } ' +
+    'np-scene .pin::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 95%, color-mix(in srgb, var(--primary-background-color) 15%, transparent) 96.5%, ' +
+    'color-mix(in srgb, var(--primary-background-color) 50%, transparent) 98%, color-mix(in srgb, var(--primary-background-color) 85%, transparent) 99.3%, var(--primary-background-color) 100%); } ' +
     'np-scene .stage { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 887 / 1662; transform-origin: 50% 65%; } ' +
     'np-scene .stage > i { position: absolute; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.full { inset: 0; } np-scene .stage > i.mask { overflow: hidden; } ' +
     'np-scene .stage > i.mask > i { position: absolute; left: 0; width: 100%; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.ov { background-image: var(--np-ov-l, none); } ' +
+    // the picture runs on 40px under the scene cards in the colour of its ground, so the fade into the page lands
+    // halfway down the cards
+    'np-scene[np-ext] { height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px)) + 40px); } np-scene[np-ext] .stage { bottom: 40px; } ' +
+    'np-scene[np-ext] .pin { background: linear-gradient(to bottom, var(--np-sky, #2c3245) calc(100% - 41px), var(--np-ground) calc(100% - 41px)); } ' +
     // the old single-image layer goes away completely (also its sky colour, which would shine through the bottom fade)
     'ha-card[np-layered]::before { background: none !important; }';
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -582,7 +586,7 @@
     const street = layers.findIndex((L) => L.kind === 'street');
     if (street >= 0) at = street;
     layers.splice(at, 0, { kind: 'ov' });
-    return { slug, urls, layers };
+    return { slug, urls, layers, text };
   };
   // remembered, so an early-built scene starts with the right glow before the lamp states are in
   let lamps = last.lamps || { down: true, up: true };
@@ -717,6 +721,39 @@
     placeSun();
     placeMoon();
   };
+  // The colour of the ground along the bottom of a drawing (the middle half of its very last row, averaged), worked
+  // out once per drawing and remembered
+  const grounds = last.groundsBottom || {};
+  const groundOf = (slug, text) => {
+    if (grounds[slug]) return Promise.resolve(grounds[slug]);
+    return new Promise((ok) => {
+      const url = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }));
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const cv = document.createElement('canvas');
+          cv.width = 96; cv.height = 180;
+          const g = cv.getContext('2d');
+          g.drawImage(img, 0, 0, 96, 180);
+          const d = g.getImageData(24, 179, 48, 1).data, sum = [0, 0, 0];
+          for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) sum[k] += d[i + k];
+          ok('#' + sum.map((s) => Math.round(s / (d.length / 4)).toString(16).padStart(2, '0')).join(''));
+        } catch (e) { ok(null); }  // a canvas that may not be read: no run-on, as before
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); ok(null); };
+      img.src = url;
+    }).then((col) => { if (col) { grounds[slug] = col; remember('groundsBottom', grounds); } return col; });
+  };
+  const extendGround = (ns, next) => {
+    if (!next.text) return;
+    if (!grounds[next.slug]) ns.removeAttribute('np-ext');
+    groundOf(next.slug, next.text).then((col) => {
+      if (!col || scene !== next) return;
+      ns.style.setProperty('--np-ground', col);
+      ns.setAttribute('np-ext', '');
+    });
+  };
   // HA sometimes builds the header card anew (often when the app comes back after a while): move the scene that is
   // already built and decoded into the new card, instead of building and decoding it all again
   const moveScene = (hc) => {
@@ -785,6 +822,7 @@
       next.people = {};
       for (const L of next.layers) if (L.kind === 'street' || L.kind === 'grass') next.people[L.kind] = L.node;
       next.sky = (next.layers.find((L) => L.kind === 'sky') || {}).node;
+      extendGround(ns, next);
       scene = next;
       placeScene(stage);
       hc.setAttribute('np-layered', '');
