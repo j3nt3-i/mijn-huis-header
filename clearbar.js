@@ -17,7 +17,9 @@
     '-webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); box-shadow: none !important; } ' +
     ':host([np-page]) .toolbar { border-bottom-color: transparent !important; } ' +
     // page entrance: hidden until the illustration is ready, then it fades in and the rest slides into place
-    ':host([np-enter]) #view, :host([np-enter]) .toolbar > * { opacity: 0 !important; }';
+    ':host([np-enter]) #view, :host([np-enter]) .toolbar > * { opacity: 0 !important; } ' +
+    // first load: the page waits (a few frames) until the greeting card has its final size, so nothing below it moves
+    ':host([np-wait]) #view { opacity: 0 !important; }';
   // Tabs as a segmented control: a rounded track with a filled pill behind the active tab, no underline.
   const segCss = ' /*np-seg*/ ' +
     'ha-tab-group::part(tabs) { transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1); gap: 2px; padding: 3px; border-radius: 999px; background: rgba(var(--rgb-primary-text-color), 0.06); margin: 8px auto 0 auto; width: fit-content; height: 40px !important; box-sizing: border-box; align-items: center !important; border: none !important; } ' +
@@ -372,9 +374,7 @@
     'np-scene .stage > i.mask > i { position: absolute; left: 0; width: 100%; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.ov { background-image: var(--np-ov, none); } ' +
     // the old single-image layer goes away completely (also its sky colour, which would shine through the bottom fade)
-    'ha-card[np-layered]::before { background: none !important; } ' +
-    // scenes sit a bit lower than before so more of the grass (and the dog) shows; phones only
-    '@media (max-width: 870px) { ha-card[np-layered] { margin-bottom: var(--np-scenes-offset, calc(-20.44vw - 4px)) !important; } }';
+    'ha-card[np-layered]::before { background: none !important; }';
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const openTag = (el, skip) => '<' + el.localName + [...el.attributes].filter((a) => !skip.includes(a.name) && !a.name.startsWith('data-np'))
     .map((a) => ' ' + a.name + '="' + esc(a.value) + '"').join('') + '>';
@@ -609,18 +609,69 @@
   };
   const ensure = () => {
     if (!hui || !hui.isConnected) hui = findHui(document);
-    if (hui && hui.shadowRoot && !hui.shadowRoot.querySelector('style[data-np-clear]')) {
+    if (hui) addBarStyle(hui);
+    return hui;
+  };
+  const addBarStyle = (h) => {
+    if (h.shadowRoot && !h.shadowRoot.querySelector('style[data-np-clear]')) {
+      hui = h;
       const s = document.createElement('style');
       s.setAttribute('data-np-clear', '');
       s.textContent = css + segCss;
       hui.shadowRoot.appendChild(s);
       // first time on the Huis page: keep it hidden until the illustration is ready (at most 3 s), then enter
+      if (/\/mijn-huis(\/huis)?\/?$/.test(location.pathname)) waitForHeader(hui);
       if (ENTRANCE === 'cascade' && /\/mijn-huis(\/huis)?\/?$/.test(location.pathname) && !still) {
         hui.setAttribute('np-enter', '');
         setTimeout(enterPage, 3000);
       }
     }
-    return hui;
+  };
+  // Attach the styling the moment HA creates the top bar (before its first paint), so the plain tabs never show;
+  // the per-frame watcher below stays as a fallback for a bar that already existed when this script loaded.
+  customElements.whenDefined('hui-root').then(() => {
+    const C = customElements.get('hui-root');
+    if (!C || C.prototype.__npPatched) return;
+    const orig = C.prototype.createRenderRoot;
+    C.prototype.createRenderRoot = function () {
+      const root = orig.call(this);
+      try { addBarStyle(this); } catch (e) { /* fallback watcher handles it */ }
+      return root;
+    };
+    C.prototype.__npPatched = true;
+  });
+  // Keep the Huis page invisible until the greeting card is laid out with its card-mod styling (its final height and
+  // the scenes' offset), checked every frame; at most 2.5 s. Then show it at once: from then on nothing shifts.
+  const waitForHeader = (h) => {
+    h.setAttribute('np-wait', '');
+    const t0 = performance.now();
+    let lastSig = '', settled = 0, done = false;
+    // safety net that does not depend on animation frames (a hidden or throttled page gets none): never stay invisible
+    const reveal = () => { if (!done) { done = true; h.removeAttribute('np-wait'); } };
+    setTimeout(reveal, 2500);
+    const tick = () => {
+      const card = findHeaderCard(h.shadowRoot);
+      const hc = card && card.shadowRoot && card.shadowRoot.querySelector('ha-card');
+      let ready = false;
+      if (hc && hc.getBoundingClientRect().height > 150) {
+        // and the layout below has settled: the positions of the sections and the scene cards are the same 4 frames in a row
+        const boxes = [];
+        const walk = (r) => { for (const n of r.querySelectorAll('*')) { if (n.tagName === 'HUI-SECTION' || n.tagName === 'HUI-CARD') boxes.push(n); if (n.shadowRoot) walk(n.shadowRoot); } };
+        walk(h.shadowRoot.querySelector('#view') || h.shadowRoot);
+        const sig = boxes.slice(0, 40).map((b) => { const r = b.getBoundingClientRect(); return Math.round(r.top) + ',' + Math.round(r.left) + ',' + Math.round(r.height); }).join(';');
+        settled = sig === lastSig ? settled + 1 : 0;
+        lastSig = sig;
+        ready = settled >= 4;
+      }
+      if (done) return;
+      if (ready || performance.now() - t0 > 2500) {
+        if (hc) headerCard = card;
+        reveal();
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   };
   // The entrance: the view (illustration + greeting) fades in, the top bar items drop into place one by one,
   // and the sections below the header (scenes, rooms, controls) slide up one after another.
