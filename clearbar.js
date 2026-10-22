@@ -509,11 +509,17 @@
     lamps = { down, up };
     if (scene) for (const L of scene.layers) if (L.urlOff && L.node) L.node.style.backgroundImage = 'url("' + ((L.room === 'up' ? up : down) ? L.url : L.urlOff) + '")';
   };
-  const appearHouse = (ns, birds) => {
-    const spring = 'cubic-bezier(0.22, 1, 0.36, 1)';
-    ns.querySelector('.pin').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: 'ease-out', fill: 'backwards' });
-    ns.querySelector('.stage').animate([{ transform: 'scale(1.05)' }, { transform: 'none' }], { duration: 900, easing: spring, fill: 'backwards' });
-    if (birds) birds.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 200, easing: 'ease-out', fill: 'backwards' });
+  // 'apple' entrance: the house settles into view (zoom 110% -> 100%, drops a little, blur -> sharp), like the wallpaper
+  // when you unlock an iPhone; the greeting and the content lift in lightly with it; the top bar stays put.
+  const appearHouse = (ns, birds, content) => {
+    const spring = 'cubic-bezier(0.25, 0.8, 0.25, 1)';
+    ns.querySelector('.pin').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 800, easing: 'ease-out', fill: 'backwards' });
+    ns.querySelector('.stage').animate([
+      { transform: 'scale(1.12) translateY(-2%)', filter: 'blur(12px)' },
+      { transform: 'none', filter: 'blur(0)' }], { duration: 1300, easing: spring, fill: 'backwards' });
+    if (birds) birds.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 300, easing: 'ease-out', fill: 'backwards' });
+    (content || []).forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }],
+      { duration: 420, delay: 120 + i * 50, easing: spring, fill: 'backwards' }));
   };
   const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const placeScene = (stage) => {
@@ -584,7 +590,13 @@
       hc.setAttribute('np-layered', '');
       setLights(lamps.down, lamps.up);
       showOverlay();
-      if (first) appearHouse(ns, hc.querySelector('np-birds'));
+      if (first) {
+        const content = [...hc.querySelectorAll(':scope > div')];
+        const walk = (r) => { for (const n of r.querySelectorAll('*')) { if (n.tagName === 'HUI-SECTION') content.push(n); else if (n.shadowRoot) walk(n.shadowRoot); } };
+        const view = hui && hui.shadowRoot.querySelector('#view');
+        if (view) { const before = content.length; walk(view); content.splice(before, 1); }  // skip the header's own section
+        appearHouse(ns, hc.querySelector('np-birds'), content.filter((el) => el.getBoundingClientRect().top < window.innerHeight + 100));
+      }
       requestAnimationFrame(() => requestAnimationFrame(enterPage));
       if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
     });

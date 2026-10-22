@@ -114,7 +114,8 @@ __SKY____OV____CRITTERS____WEATHER__
   $('dog').onclick = () => restart(nb.querySelectorAll('u'));
   $('birds').onclick = () => restart(nb.querySelectorAll('b'));
   const SLOW = Number(new URLSearchParams(location.search).get('slow') || 1);
-  const slowDown = () => { if (SLOW !== 1) for (const a of document.getAnimations()) if (a.effect && a.effect.getTiming().iterations !== Infinity) a.playbackRate = 1 / SLOW; };
+  // the house and the cards live in a shadow root: include its animations too
+  const slowDown = () => { if (SLOW !== 1) for (const a of [...document.getAnimations(), ...sr.getAnimations()]) if (a.effect && a.effect.getTiming().iterations !== Infinity) a.playbackRate = 1 / SLOW; };
   const playEntrance = async () => {
     if ($('style').value === 'apple') return playApple();
     const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -141,7 +142,7 @@ __SKY____OV____CRITTERS____WEATHER__
     await new Promise((r) => setTimeout(r, 450 * SLOW));     // the time the dashboard needs to decode the layers
     const ns = sr.querySelector('np-scene');
     ns.querySelector('.pin').style.opacity = ''; nb.style.opacity = '';
-    appearHouse(ns, nb);
+    appearHouse(ns, nb, [sr.querySelector('ha-card > div'), sr.querySelector('.scenes'), ...sr.querySelectorAll('.rest > i')]);
     slowDown();
   };
   $('style').addEventListener('change', () => { try { localStorage.setItem('np-entrance', ENTRANCE); } catch (e) {} playEntrance(); });
