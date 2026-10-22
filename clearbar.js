@@ -15,7 +15,9 @@
     // once the scene cards have passed under the bar, it takes the page background colour
     ':host([np-page]) .header { background-color: color-mix(in srgb, var(--primary-background-color) 72%, transparent) !important; ' +
     '-webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); box-shadow: none !important; } ' +
-    ':host([np-page]) .toolbar { border-bottom-color: transparent !important; }';
+    ':host([np-page]) .toolbar { border-bottom-color: transparent !important; } ' +
+    // page entrance: hidden until the illustration is ready, then it fades in and the rest slides into place
+    ':host([np-enter]) #view, :host([np-enter]) .toolbar > * { opacity: 0 !important; }';
   // Tabs as a segmented control: a rounded track with a filled pill behind the active tab, no underline.
   const segCss = ' /*np-seg*/ ' +
     'ha-tab-group::part(tabs) { transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1); gap: 2px; padding: 3px; border-radius: 999px; background: rgba(var(--rgb-primary-text-color), 0.06); margin: 8px auto 0 auto; width: fit-content; height: 40px !important; box-sizing: border-box; align-items: center !important; border: none !important; } ' +
@@ -563,6 +565,7 @@
       hc.setAttribute('np-layered', '');
       setLights(lamps.down, lamps.up);
       showOverlay();
+      requestAnimationFrame(() => requestAnimationFrame(enterPage));
       if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
     });
   };
@@ -581,8 +584,37 @@
       s.setAttribute('data-np-clear', '');
       s.textContent = css + segCss;
       hui.shadowRoot.appendChild(s);
+      // first time on the Huis page: keep it hidden until the illustration is ready (at most 3 s), then enter
+      if (/\/mijn-huis(\/huis)?\/?$/.test(location.pathname) && !still) {
+        hui.setAttribute('np-enter', '');
+        setTimeout(enterPage, 3000);
+      }
     }
     return hui;
+  };
+  // The entrance: the view (illustration + greeting) fades in, the top bar items drop into place one by one,
+  // and the sections below the header (scenes, rooms, controls) slide up one after another.
+  const enterPage = () => {
+    const h = hui;
+    if (!h || !h.hasAttribute('np-enter')) return;
+    const sr = h.shadowRoot;
+    const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+    const view = sr.querySelector('#view');
+    const sections = [];
+    const walk = (r) => { for (const n of r.querySelectorAll('*')) { if (n.tagName === 'HUI-SECTION') sections.push(n); else if (n.shadowRoot) walk(n.shadowRoot); } };
+    if (view) walk(view);
+    const vh = window.innerHeight;
+    const bar = [...sr.querySelectorAll('.toolbar > *')];
+    if (view) view.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-out', fill: 'backwards' });
+    bar.forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }],
+      { duration: 450, delay: 250 + i * 70, easing: ease, fill: 'backwards' }));
+    let k = 0;
+    sections.slice(1).forEach((el) => {
+      const onScreen = el.getBoundingClientRect().top < vh + 100;
+      el.animate([{ opacity: 0, transform: 'translateY(36px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 600, delay: onScreen ? 300 + (k++) * 80 : 300, easing: ease, fill: 'backwards' });
+    });
+    h.removeAttribute('np-enter');
   };
   // the scene carousel: the horizontally scrolling grid right below the illustration
   let carousel = null;

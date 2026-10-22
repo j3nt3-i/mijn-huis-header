@@ -89,6 +89,7 @@ button{cursor:pointer}
   const BIRD_WEATHER = ['sunny', 'partlycloudy', 'cloudy', 'windy', 'windy-variant', 'snowsun'];
   const whenLoaded = (url) => new Promise((ok) => { const i = new Image(); i.onload = i.onerror = () => ok(); i.src = url; });
   const showOverlay = () => {};
+  const enterPage = () => {};
   let houseSlug = null;
   // ---- Layered scene ---------------------------------------------------------------------------------------
   // The drawing is split on the phone into stacked layers: the sky with its slow clouds, the static trees/house/hedge
@@ -320,6 +321,7 @@ button{cursor:pointer}
       hc.setAttribute('np-layered', '');
       setLights(lamps.down, lamps.up);
       showOverlay();
+      requestAnimationFrame(() => requestAnimationFrame(enterPage));
       if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
     });
   };
