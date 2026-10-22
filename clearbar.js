@@ -146,6 +146,10 @@
     } catch (e) { /* offline: try again next time */ }
     snowBusy = false;
   };
+  // How the Huis page comes in on a fresh load:
+  //  'cascade' - hidden until the illustration is ready, then it fades in and bar + sections slide in one by one
+  //  'apple'   - bar and content are there at once; only the house appears (fade from the sky + slight zoom)
+  const ENTRANCE = 'cascade';
   const SIG_KEY = 'np-house-sig-14';  // bump when the SVGs are replaced, so browsers fetch the new ones
   let sigs = {};
   try { sigs = JSON.parse(localStorage.getItem(SIG_KEY) || '{}'); } catch (e) { sigs = {}; }
@@ -165,9 +169,17 @@
     setVar('--np-sky', SKY[slug]);
     houseSlug = slug;
     remember('house', url); remember('sky', SKY[slug]);
+    if (ENTRANCE === 'apple') { fallbackLater(url); return; }
     whenLoaded(url).then(() => { setVar('--np-house', 'url("' + url + '")'); showOverlay(); });
   };
-  if (last.house && last.sky) {
+  // 'apple' entrance: only show the plain drawing if the layered scene has not appeared after 4 s
+  let fallbackTimer = 0;
+  const fallbackLater = (url) => {
+    clearTimeout(fallbackTimer);
+    fallbackTimer = setTimeout(() => { if (!scene) { setVar('--np-house', 'url("' + url + '")'); showOverlay(); } }, 4000);
+  };
+  if (last.house && last.sky && ENTRANCE === 'apple') setVar('--np-sky', last.sky);
+  else if (last.house && last.sky) {
     setVar('--np-sky', last.sky);
     whenLoaded(last.house).then(() => { if (!houseReady) { setVar('--np-house', 'url("' + last.house + '")'); showOverlay(); } });
   }
@@ -351,7 +363,7 @@
     '@keyframes np-pin { from { transform: translateY(0); } to { transform: translateY(1000px); } } ' +
     'np-scene .pin::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 86%, color-mix(in srgb, var(--primary-background-color) 15%, transparent) 90%, ' +
     'color-mix(in srgb, var(--primary-background-color) 50%, transparent) 94%, color-mix(in srgb, var(--primary-background-color) 85%, transparent) 98%, var(--primary-background-color) 100%); } ' +
-    'np-scene .stage { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 887 / 1662; } ' +
+    'np-scene .stage { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 887 / 1662; transform-origin: 50% 65%; } ' +
     'np-scene .stage > i { position: absolute; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.full { inset: 0; } np-scene .stage > i.mask { overflow: hidden; } ' +
     'np-scene .stage > i.mask > i { position: absolute; left: 0; width: 100%; display: block; background: center / 100% 100% no-repeat; } ' +
@@ -497,6 +509,12 @@
     lamps = { down, up };
     if (scene) for (const L of scene.layers) if (L.urlOff && L.node) L.node.style.backgroundImage = 'url("' + ((L.room === 'up' ? up : down) ? L.url : L.urlOff) + '")';
   };
+  const appearHouse = (ns, birds) => {
+    const spring = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    ns.querySelector('.pin').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: 'ease-out', fill: 'backwards' });
+    ns.querySelector('.stage').animate([{ transform: 'scale(1.05)' }, { transform: 'none' }], { duration: 900, easing: spring, fill: 'backwards' });
+    if (birds) birds.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 200, easing: 'ease-out', fill: 'backwards' });
+  };
   const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const placeScene = (stage) => {
     if (!scene) return;
@@ -559,12 +577,14 @@
     ready.then(() => {
       if (token !== sceneToken) return;  // a newer drawing was picked meanwhile
       const old = scene;
+      const first = !old && ENTRANCE === 'apple' && !still;
       stage.replaceChildren(frag);
       scene = next;
       placeScene(stage);
       hc.setAttribute('np-layered', '');
       setLights(lamps.down, lamps.up);
       showOverlay();
+      if (first) appearHouse(ns, hc.querySelector('np-birds'));
       requestAnimationFrame(() => requestAnimationFrame(enterPage));
       if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
     });
@@ -585,7 +605,7 @@
       s.textContent = css + segCss;
       hui.shadowRoot.appendChild(s);
       // first time on the Huis page: keep it hidden until the illustration is ready (at most 3 s), then enter
-      if (/\/mijn-huis(\/huis)?\/?$/.test(location.pathname) && !still) {
+      if (ENTRANCE === 'cascade' && /\/mijn-huis(\/huis)?\/?$/.test(location.pathname) && !still) {
         hui.setAttribute('np-enter', '');
         setTimeout(enterPage, 3000);
       }

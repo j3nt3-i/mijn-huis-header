@@ -37,6 +37,7 @@ button{cursor:pointer}
   <label>Weer<select id="wx"></select></label>
   <label>Dagdeel<select id="tod"><option value="dawn">Ochtendschemer</option><option value="day">Dag</option><option value="dusk">Avondschemer</option><option value="night">Nacht</option></select></label>
   <div class="row"><button id="prev">← Vorige</button><button id="next">Volgende →</button></div>
+  <label>Laadanimatie<select id="style"><option value="cascade">Huidig (alles schuift in)</option><option value="apple">Apple-stijl (alleen het huis verschijnt)</option></select></label>
   <button id="enter">▶ Laadanimatie afspelen</button>
   <label class="check"><input type="checkbox" id="down" checked> Lampen beneden aan</label>
   <label class="check"><input type="checkbox" id="up" checked> Lampen boven aan</label>
@@ -113,6 +114,7 @@ __SKY____OV____CRITTERS____WEATHER__
   $('dog').onclick = () => restart(nb.querySelectorAll('u'));
   $('birds').onclick = () => restart(nb.querySelectorAll('b'));
   const playEntrance = async () => {
+    if ($('style').value === 'apple') return playApple();
     const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
     const view = host, bar = [...$('bar').children], sections = [...sr.querySelectorAll('.scenes, .rest > i')];
     for (const el of [view, ...bar, ...sections]) el.style.opacity = '0';
@@ -126,6 +128,20 @@ __SKY____OV____CRITTERS____WEATHER__
     sections.forEach((el, k) => el.animate([{ opacity: 0, transform: 'translateY(36px)' }, { opacity: 1, transform: 'none' }],
       { duration: 600, delay: 300 + k * 80, easing: ease, fill: 'backwards' }));
   };
+  // Apple-style: the bar and content are there at once; the house appears behind them (fade from the sky + slight zoom)
+  const playApple = async () => {
+    $('scroller').scrollTop = 0;
+    const old = sr.querySelector('np-scene .pin');
+    if (old) old.style.opacity = '0';
+    nb.style.opacity = '0';
+    await render();
+    await new Promise((r) => setTimeout(r, 450));     // the time the dashboard needs to decode the layers
+    const ns = sr.querySelector('np-scene');
+    ns.querySelector('.pin').style.opacity = ''; nb.style.opacity = '';
+    appearHouse(ns, nb);
+  };
+  $('style').addEventListener('change', () => { try { localStorage.setItem('np-entrance', ENTRANCE); } catch (e) {} playEntrance(); });
+  try { const s = localStorage.getItem('np-entrance'); if (s) $('style').value = s; } catch (e) {}
   $('enter').onclick = playEntrance;
   $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
   addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); });
@@ -137,7 +153,7 @@ __SKY____OV____CRITTERS____WEATHER__
 scene = scene.replace('@media (max-width: 870px) { ha-card[np-layered]', '@media (min-width: 0px) { ha-card[np-layered]')  # the phone frame is narrow, the window is not
 # helpers the scene code shares with the dashboard script's house logic
 scene = ("  const whenLoaded = (url) => new Promise((ok) => { const i = new Image(); i.onload = i.onerror = () => ok(); i.src = url; });\n"
-         "  const showOverlay = () => {};\n  const enterPage = () => {};\n  let houseSlug = null;\n") + scene
+         "  const showOverlay = () => {};\n  const enterPage = () => {};\n  let houseSlug = null;\n  let ENTRANCE = 'cascade';\n") + scene
 html = (html.replace('__SKY__', sky).replace('__OV__', ov).replace('__CRITTERS__', critters).replace('__WEATHER__', weather + scene))
 open('viewer.html', 'w').write(html)
 print('viewer.html', len(html) // 1024, 'KB')

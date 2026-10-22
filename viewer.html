@@ -27,6 +27,7 @@ button{cursor:pointer}
   <label>Weer<select id="wx"></select></label>
   <label>Dagdeel<select id="tod"><option value="dawn">Ochtendschemer</option><option value="day">Dag</option><option value="dusk">Avondschemer</option><option value="night">Nacht</option></select></label>
   <div class="row"><button id="prev">← Vorige</button><button id="next">Volgende →</button></div>
+  <label>Laadanimatie<select id="style"><option value="cascade">Huidig (alles schuift in)</option><option value="apple">Apple-stijl (alleen het huis verschijnt)</option></select></label>
   <button id="enter">▶ Laadanimatie afspelen</button>
   <label class="check"><input type="checkbox" id="down" checked> Lampen beneden aan</label>
   <label class="check"><input type="checkbox" id="up" checked> Lampen boven aan</label>
@@ -98,6 +99,7 @@ button{cursor:pointer}
   const showOverlay = () => {};
   const enterPage = () => {};
   let houseSlug = null;
+  let ENTRANCE = 'cascade';
   // ---- Layered scene ---------------------------------------------------------------------------------------
   // The drawing is split on the phone into stacked layers: the sky with its slow clouds, the static trees/house/hedge
   // (drawn once), and every moving part (rain, snow, wind, leaves, lightning) as its own small image that the page
@@ -114,7 +116,7 @@ button{cursor:pointer}
     '@keyframes np-pin { from { transform: translateY(0); } to { transform: translateY(1000px); } } ' +
     'np-scene .pin::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 86%, color-mix(in srgb, var(--primary-background-color) 15%, transparent) 90%, ' +
     'color-mix(in srgb, var(--primary-background-color) 50%, transparent) 94%, color-mix(in srgb, var(--primary-background-color) 85%, transparent) 98%, var(--primary-background-color) 100%); } ' +
-    'np-scene .stage { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 887 / 1662; } ' +
+    'np-scene .stage { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 887 / 1662; transform-origin: 50% 65%; } ' +
     'np-scene .stage > i { position: absolute; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.full { inset: 0; } np-scene .stage > i.mask { overflow: hidden; } ' +
     'np-scene .stage > i.mask > i { position: absolute; left: 0; width: 100%; display: block; background: center / 100% 100% no-repeat; } ' +
@@ -260,6 +262,12 @@ button{cursor:pointer}
     lamps = { down, up };
     if (scene) for (const L of scene.layers) if (L.urlOff && L.node) L.node.style.backgroundImage = 'url("' + ((L.room === 'up' ? up : down) ? L.url : L.urlOff) + '")';
   };
+  const appearHouse = (ns, birds) => {
+    const spring = 'cubic-bezier(0.22, 1, 0.36, 1)';
+    ns.querySelector('.pin').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: 'ease-out', fill: 'backwards' });
+    ns.querySelector('.stage').animate([{ transform: 'scale(1.05)' }, { transform: 'none' }], { duration: 900, easing: spring, fill: 'backwards' });
+    if (birds) birds.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 200, easing: 'ease-out', fill: 'backwards' });
+  };
   const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const placeScene = (stage) => {
     if (!scene) return;
@@ -322,12 +330,14 @@ button{cursor:pointer}
     ready.then(() => {
       if (token !== sceneToken) return;  // a newer drawing was picked meanwhile
       const old = scene;
+      const first = !old && ENTRANCE === 'apple' && !still;
       stage.replaceChildren(frag);
       scene = next;
       placeScene(stage);
       hc.setAttribute('np-layered', '');
       setLights(lamps.down, lamps.up);
       showOverlay();
+      if (first) appearHouse(ns, hc.querySelector('np-birds'));
       requestAnimationFrame(() => requestAnimationFrame(enterPage));
       if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
     });
@@ -396,6 +406,7 @@ button{cursor:pointer}
   $('dog').onclick = () => restart(nb.querySelectorAll('u'));
   $('birds').onclick = () => restart(nb.querySelectorAll('b'));
   const playEntrance = async () => {
+    if ($('style').value === 'apple') return playApple();
     const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
     const view = host, bar = [...$('bar').children], sections = [...sr.querySelectorAll('.scenes, .rest > i')];
     for (const el of [view, ...bar, ...sections]) el.style.opacity = '0';
@@ -409,6 +420,20 @@ button{cursor:pointer}
     sections.forEach((el, k) => el.animate([{ opacity: 0, transform: 'translateY(36px)' }, { opacity: 1, transform: 'none' }],
       { duration: 600, delay: 300 + k * 80, easing: ease, fill: 'backwards' }));
   };
+  // Apple-style: the bar and content are there at once; the house appears behind them (fade from the sky + slight zoom)
+  const playApple = async () => {
+    $('scroller').scrollTop = 0;
+    const old = sr.querySelector('np-scene .pin');
+    if (old) old.style.opacity = '0';
+    nb.style.opacity = '0';
+    await render();
+    await new Promise((r) => setTimeout(r, 450));     // the time the dashboard needs to decode the layers
+    const ns = sr.querySelector('np-scene');
+    ns.querySelector('.pin').style.opacity = ''; nb.style.opacity = '';
+    appearHouse(ns, nb);
+  };
+  $('style').addEventListener('change', () => { try { localStorage.setItem('np-entrance', ENTRANCE); } catch (e) {} playEntrance(); });
+  try { const s = localStorage.getItem('np-entrance'); if (s) $('style').value = s; } catch (e) {}
   $('enter').onclick = playEntrance;
   $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
   addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); });
