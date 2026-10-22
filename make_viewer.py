@@ -142,7 +142,7 @@ __SKY____OV____CRITTERS____WEATHER__
     await new Promise((r) => setTimeout(r, 450 * SLOW));     // the time the dashboard needs to decode the layers
     const ns = sr.querySelector('np-scene');
     ns.querySelector('.pin').style.opacity = ''; nb.style.opacity = '';
-    appearHouse(ns, nb, [sr.querySelector('ha-card > div'), sr.querySelector('.scenes'), ...sr.querySelectorAll('.rest > i')]);
+    appearHouse(ns, nb);
     slowDown();
   };
   $('style').addEventListener('change', () => { try { localStorage.setItem('np-entrance', ENTRANCE); } catch (e) {} playEntrance(); });

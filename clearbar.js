@@ -513,7 +513,7 @@
     if (scene) for (const L of scene.layers) if (L.urlOff && L.node) L.node.style.backgroundImage = 'url("' + ((L.room === 'up' ? up : down) ? L.url : L.urlOff) + '")';
   };
   // 'apple' entrance: the house settles into view (zoom 110% -> 100%, drops a little, blur -> sharp), like the wallpaper
-  // when you unlock an iPhone; the greeting and the content lift in lightly with it; the top bar stays put.
+  // when you unlock an iPhone. The bar, greeting and content are already there and do not move.
   const appearHouse = (ns, birds, content) => {
     const spring = 'cubic-bezier(0.25, 0.8, 0.25, 1)';
     ns.querySelector('.pin').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 800, easing: 'ease-out', fill: 'backwards' });
@@ -593,13 +593,8 @@
       hc.setAttribute('np-layered', '');
       setLights(lamps.down, lamps.up);
       showOverlay();
-      if (first) {
-        const content = [...hc.querySelectorAll(':scope > div')];
-        const walk = (r) => { for (const n of r.querySelectorAll('*')) { if (n.tagName === 'HUI-SECTION') content.push(n); else if (n.shadowRoot) walk(n.shadowRoot); } };
-        const view = hui && hui.shadowRoot.querySelector('#view');
-        if (view) { const before = content.length; walk(view); content.splice(before, 1); }  // skip the header's own section
-        appearHouse(ns, hc.querySelector('np-birds'), content.filter((el) => el.getBoundingClientRect().top < window.innerHeight + 100));
-      }
+      // only the house comes in; the greeting and the content are already on screen and stay put
+      if (first) appearHouse(ns, hc.querySelector('np-birds'));
       requestAnimationFrame(() => requestAnimationFrame(enterPage));
       if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
     });
