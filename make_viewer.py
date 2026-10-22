@@ -45,6 +45,7 @@ button{cursor:pointer}
   <label class="check"><input type="checkbox" id="musicup"> Muziek boven (Hall display / first floor)</label>
   <label class="check"><input type="checkbox" id="light"> Lichte modus</label>
   <div class="row"><button id="dog">🐕 Hond nu laten lopen</button><button id="birds">🐦 Vogels nu laten vliegen</button></div>
+  <div class="row"><button id="pwalk">🚶 Wandelaar</button><button id="pbike">🚲 Fietser</button><button id="pdog">🦮 Met hondje</button></div>
   <div class="hint">Pijltjestoetsen ← → wisselen van tekening. Vogels en hond verschijnen alleen bij droog weer (zonnig, half bewolkt, bewolkt, winderig, sneeuw zonnig) en niet ’s nachts, zoals op het dashboard. Ze komen maar af en toe langs; met de knoppen start je meteen een ronde. De hond loopt over het gras voor de haag.</div>
   <div class="info" id="info"></div>
 </div>
@@ -112,6 +113,8 @@ __SKY____OV____CRITTERS____WEATHER__
   // start a pass right now instead of waiting for the next one (only visible in dry weather and not at night)
   const restart = (els) => { for (const el of els) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; el.style.animationDelay = '0s'; } };
   $('dog').onclick = () => restart(nb.querySelectorAll('u'));
+  // people: the same code as the dashboard (in the rain the walker carries an umbrella and the cyclist walks)
+  for (const [id, kind] of [['pwalk', 'walker'], ['pbike', 'cyclist'], ['pdog', 'dogwalker']]) $(id).onclick = () => sendPerson(kind, $('wx').value, $('tod').value);
   $('birds').onclick = () => restart(nb.querySelectorAll('b'));
   const SLOW = Number(new URLSearchParams(location.search).get('slow') || 1);
   // the house and the cards live in a shadow root: include its animations too

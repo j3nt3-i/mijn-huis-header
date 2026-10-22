@@ -302,6 +302,7 @@
   // so they cost almost nothing), only in dry weather and not at night. Wing flap and walk cycle are inside the small SVGs.
   const NOTE1 = "url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2014%2020%22%3E%3Cg%20fill%3D%22%23fff4d6%22%3E%3Cellipse%20cx%3D%224.6%22%20cy%3D%2216%22%20rx%3D%224.2%22%20ry%3D%223%22%20transform%3D%22rotate%28-22%204.6%2016%29%22%2F%3E%3Crect%20x%3D%227.4%22%20y%3D%222%22%20width%3D%221.5%22%20height%3D%2214%22%20rx%3D%220.7%22%2F%3E%3Cpath%20d%3D%22M8.2%202%20C10%204.5%2013.6%205.5%2012.8%2010.2%20C12.4%208%2010.6%207%208.2%206.6%20Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E')";
   const NOTE2 = "url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2022%2020%22%3E%3Cg%20fill%3D%22%23fff4d6%22%3E%3Cellipse%20cx%3D%224.4%22%20cy%3D%2216.2%22%20rx%3D%224%22%20ry%3D%222.9%22%20transform%3D%22rotate%28-22%204.4%2016.2%29%22%2F%3E%3Cellipse%20cx%3D%2216.4%22%20cy%3D%2214.2%22%20rx%3D%224%22%20ry%3D%222.9%22%20transform%3D%22rotate%28-22%2016.4%2014.2%29%22%2F%3E%3Crect%20x%3D%227.2%22%20y%3D%223.4%22%20width%3D%221.5%22%20height%3D%2212.8%22%20rx%3D%220.7%22%2F%3E%3Crect%20x%3D%2219.2%22%20y%3D%221.4%22%20width%3D%221.5%22%20height%3D%2212.8%22%20rx%3D%220.7%22%2F%3E%3Cpath%20d%3D%22M7.2%203.4%20L20.7%201.4%20L20.7%204.4%20L7.2%206.4%20Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E')";
+  const DOG_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 40"><defs><linearGradient id="fur" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98b55"/><stop offset="1" stop-color="#a86d3f"/></linearGradient><linearGradient id="furD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93592f"/><stop offset="1" stop-color="#7a4826"/></linearGradient></defs><ellipse cx="31" cy="37.6" rx="17" ry="1.8" fill="#1d2a1a" opacity="0.22"/><g><animateTransform attributeName="transform" type="translate" values="0 0;0 -0.7;0 0;0 -0.7;0 0" dur="0.56s" repeatCount="indefinite"/><path d="M19.5 22 h3.4 v13.3 a1.7 1.7 0 0 1 -3.4 0 z" fill="url(#furD)"><animateTransform attributeName="transform" type="rotate" values="20 21.2 22;-20 21.2 22;20 21.2 22" dur="0.56s" repeatCount="indefinite"/></path><path d="M39.5 22 h3.4 v13.3 a1.7 1.7 0 0 1 -3.4 0 z" fill="url(#furD)"><animateTransform attributeName="transform" type="rotate" values="-20 41.2 22;20 41.2 22;-20 41.2 22" dur="0.56s" repeatCount="indefinite"/></path><path d="M15 18 C10 16 8 12 9 7" fill="none" stroke="#a86d3f" stroke-width="3" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="-14 15 18;12 15 18;-14 15 18" dur="0.42s" repeatCount="indefinite"/></path><rect x="13" y="13" width="33" height="13.5" rx="6.8" fill="url(#fur)"/><path d="M20 24.8 Q30 27.6 40 24.8 L40 26.2 Q30 28.6 20 26.2 Z" fill="#f1dcbc" opacity="0.55"/><path d="M15.8 21 h3.6 v14.3 a1.8 1.8 0 0 1 -3.6 0 z" fill="url(#fur)"><animateTransform attributeName="transform" type="rotate" values="-20 17.6 21;20 17.6 21;-20 17.6 21" dur="0.56s" repeatCount="indefinite"/></path><path d="M36 21 h3.6 v14.3 a1.8 1.8 0 0 1 -3.6 0 z" fill="url(#fur)"><animateTransform attributeName="transform" type="rotate" values="20 37.8 21;-20 37.8 21;20 37.8 21" dur="0.56s" repeatCount="indefinite"/></path><path d="M40 18 Q44 9 50 8 L52 15 Q47 17 45 22 Z" fill="url(#fur)"/><circle cx="50.5" cy="10.5" r="6.6" fill="url(#fur)"/><ellipse cx="56.6" cy="13" rx="5.2" ry="3.6" fill="#e8c79c"/><circle cx="61" cy="11.9" r="1.6" fill="#2a1d16"/><circle cx="52.6" cy="8.6" r="1.05" fill="#2a1d16"/><path d="M45.4 5.6 Q42 7 43 14.2 Q46.6 12.6 47.8 7.4 Z" fill="url(#furD)"/><path d="M44.2 15.4 Q47 19.6 51.4 16.6" fill="none" stroke="#d64545" stroke-width="1.8" stroke-linecap="round"/></g></svg>';
   const DOG = "url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2040%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22fur%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23c98b55%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23a86d3f%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22furD%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%2393592f%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%237a4826%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cellipse%20cx%3D%2231%22%20cy%3D%2237.6%22%20rx%3D%2217%22%20ry%3D%221.8%22%20fill%3D%22%231d2a1a%22%20opacity%3D%220.22%22%2F%3E%3Cg%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22translate%22%20values%3D%220%200%3B0%20-0.7%3B0%200%3B0%20-0.7%3B0%200%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3Cpath%20d%3D%22M19.5%2022%20h3.4%20v13.3%20a1.7%201.7%200%200%201%20-3.4%200%20z%22%20fill%3D%22url%28%23furD%29%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%2220%2021.2%2022%3B-20%2021.2%2022%3B20%2021.2%2022%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M39.5%2022%20h3.4%20v13.3%20a1.7%201.7%200%200%201%20-3.4%200%20z%22%20fill%3D%22url%28%23furD%29%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%22-20%2041.2%2022%3B20%2041.2%2022%3B-20%2041.2%2022%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M15%2018%20C10%2016%208%2012%209%207%22%20fill%3D%22none%22%20stroke%3D%22%23a86d3f%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%22-14%2015%2018%3B12%2015%2018%3B-14%2015%2018%22%20dur%3D%220.42s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Crect%20x%3D%2213%22%20y%3D%2213%22%20width%3D%2233%22%20height%3D%2213.5%22%20rx%3D%226.8%22%20fill%3D%22url%28%23fur%29%22%2F%3E%3Cpath%20d%3D%22M20%2024.8%20Q30%2027.6%2040%2024.8%20L40%2026.2%20Q30%2028.6%2020%2026.2%20Z%22%20fill%3D%22%23f1dcbc%22%20opacity%3D%220.55%22%2F%3E%3Cpath%20d%3D%22M15.8%2021%20h3.6%20v14.3%20a1.8%201.8%200%200%201%20-3.6%200%20z%22%20fill%3D%22url%28%23fur%29%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%22-20%2017.6%2021%3B20%2017.6%2021%3B-20%2017.6%2021%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M36%2021%20h3.6%20v14.3%20a1.8%201.8%200%200%201%20-3.6%200%20z%22%20fill%3D%22url%28%23fur%29%22%3E%3CanimateTransform%20attributeName%3D%22transform%22%20type%3D%22rotate%22%20values%3D%2220%2037.8%2021%3B-20%2037.8%2021%3B20%2037.8%2021%22%20dur%3D%220.56s%22%20repeatCount%3D%22indefinite%22%2F%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M40%2018%20Q44%209%2050%208%20L52%2015%20Q47%2017%2045%2022%20Z%22%20fill%3D%22url%28%23fur%29%22%2F%3E%3Ccircle%20cx%3D%2250.5%22%20cy%3D%2210.5%22%20r%3D%226.6%22%20fill%3D%22url%28%23fur%29%22%2F%3E%3Cellipse%20cx%3D%2256.6%22%20cy%3D%2213%22%20rx%3D%225.2%22%20ry%3D%223.6%22%20fill%3D%22%23e8c79c%22%2F%3E%3Ccircle%20cx%3D%2261%22%20cy%3D%2211.9%22%20r%3D%221.6%22%20fill%3D%22%232a1d16%22%2F%3E%3Ccircle%20cx%3D%2252.6%22%20cy%3D%228.6%22%20r%3D%221.05%22%20fill%3D%22%232a1d16%22%2F%3E%3Cpath%20d%3D%22M45.4%205.6%20Q42%207%2043%2014.2%20Q46.6%2012.6%2047.8%207.4%20Z%22%20fill%3D%22url%28%23furD%29%22%2F%3E%3Cpath%20d%3D%22M44.2%2015.4%20Q47%2019.6%2051.4%2016.6%22%20fill%3D%22none%22%20stroke%3D%22%23d64545%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E')";
   const BIRD = "url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2020%22%3E%3Cpath%20fill%3D%22%232b3340%22%3E%3Canimate%20attributeName%3D%22d%22%20dur%3D%220.6s%22%20repeatCount%3D%22indefinite%22%20calcMode%3D%22spline%22%20keyTimes%3D%220%3B0.25%3B0.5%3B0.75%3B1%22%20keySplines%3D%220.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%3B0.4%200%200.6%201%22%20values%3D%22M2%203%20Q10%206%2016%2010%20Q18%2011%2020%2012%20Q22%2011%2024%2010%20Q30%206%2038%203%20Q31%209%2024%2013%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013%20Q9%209%202%203%20Z%3B%20M1%209%20Q9%208%2016%2010.5%20Q18%2011%2020%2012%20Q22%2011%2024%2010.5%20Q31%208%2039%209%20Q31%2011%2024%2013%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013%20Q9%2011%201%209%20Z%3B%20M4%2016%20Q10%2012%2016%2011%20Q18%2011%2020%2012%20Q22%2011%2024%2011%20Q30%2012%2036%2016%20Q30%2014%2024%2013.5%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013.5%20Q10%2014%204%2016%20Z%3B%20M1%209%20Q9%208%2016%2010.5%20Q18%2011%2020%2012%20Q22%2011%2024%2010.5%20Q31%208%2039%209%20Q31%2011%2024%2013%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013%20Q9%2011%201%209%20Z%3B%20M2%203%20Q10%206%2016%2010%20Q18%2011%2020%2012%20Q22%2011%2024%2010%20Q30%206%2038%203%20Q31%209%2024%2013%20Q22%2014.5%2020%2015%20Q18%2014.5%2016%2013%20Q9%209%202%203%20Z%22%2F%3E%3C%2Fpath%3E%3C%2Fsvg%3E')";
   // size in px; flock = several small birds flying together
@@ -432,17 +433,24 @@
     if (root.localName !== 'svg') throw new Error('not an svg');
     // paint units in drawing order (definitions are kept in every layer, never counted)
     const units = [];
+    // the hedge group ("Haag", "Haag en grasstrook", ...) gets a people layer right before it (the street behind
+    // the hedge) and one right after it (the grass in front)
+    let hedgeSeen = false;
     const walk = (el) => {
       for (const c of el.children) {
         if (NONPAINT.has(c.localName)) continue;
+        const hedge = !hedgeSeen && /^Haag( en |$)/.test(c.getAttribute('id') || '');
+        if (hedge) { hedgeSeen = true; units.push({ marker: 'street' }); }
         if (c.hasAttribute('data-np') || c.hasAttribute('data-np-cloud') || !c.firstElementChild || c.localName === 'use') units.push(c);
         else walk(c);
+        if (hedge) units.push({ marker: 'grass' });
       }
     };
     walk(root);
     const segs = [];
     let cur = [];
     units.forEach((u, i) => {
+      if (u.marker) { if (cur.length) { segs.push({ kind: 'static', ids: cur }); cur = []; } segs.push({ kind: u.marker }); return; }
       u.setAttribute('data-np-i', i);
       const kind = u.getAttribute('data-np') === 'light' ? null : u.getAttribute('data-np');
       if (kind) {
@@ -477,6 +485,7 @@
     const layers = [];
     for (const sg of segs) {
       const L = { kind: sg.kind };
+      if (sg.kind === 'street' || sg.kind === 'grass') { layers.push(L); continue; }
       if (sg.kind === 'static') {
         const keep = new Set(sg.ids);
         const c = root.cloneNode(true);
@@ -548,6 +557,8 @@
     // the windows/cat overlay goes above the house (and the storm darkening), below rain, snow and wind
     let at = 0;
     layers.forEach((L, k) => { if (['static', 'dark', 'bolt', 'glow'].includes(L.kind)) at = k + 1; });
+    const street = layers.findIndex((L) => L.kind === 'street');
+    if (street >= 0) at = street;
     layers.splice(at, 0, { kind: 'ov' });
     return { slug, urls, layers };
   };
@@ -611,7 +622,7 @@
       if (L.running) { L.running.cancel(); L.running = null; }
       const el = document.createElement('i');
       L.node = L.target = el;
-      if (L.kind === 'static' || L.kind === 'ov') el.className = 'full' + (L.kind === 'ov' ? ' ov' : '');
+      if (L.kind === 'static' || L.kind === 'ov' || L.kind === 'street' || L.kind === 'grass') el.className = 'full' + (L.kind === 'ov' ? ' ov' : '');
       if (L.kind === 'dark') el.style.background = L.color;
       if (L.url && L.kind !== 'lamp') el.style.backgroundImage = 'url("' + L.url + '")';
       if (L.kind === 'lamp') {
@@ -634,6 +645,8 @@
       const old = scene;
       const first = !old && ENTRANCE === 'apple' && !still;
       stage.replaceChildren(frag);
+      next.people = {};
+      for (const L of next.layers) if (L.kind === 'street' || L.kind === 'grass') next.people[L.kind] = L.node;
       scene = next;
       placeScene(stage);
       hc.setAttribute('np-layered', '');
@@ -645,6 +658,118 @@
       if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
     });
   };
+  // ---- People ------------------------------------------------------------------------------------------------
+  // Now and then someone passes: walking or cycling on the little street behind the hedge (only the upper body shows
+  // above it), or walking a dog over the grass. In the rain walkers carry an umbrella and nobody cycles.
+  // Figures are small flat SVGs in the drawing's palette, built here with random colours; legs, arms and wheels move
+  // with SMIL inside the tiny image, the walk across the picture is a page animation (composited).
+  const PEOPLE_COLORS = {
+    coat: ['#c0564b', '#3f6e8c', '#d79b3f', '#5c7a4f', '#7a5a8c', '#2f3b4c', '#b8746a', '#4f8f88'],
+    pants: ['#2c3440', '#3d4a5c', '#4a3f38', '#24303a', '#5a5047'],
+    skin: ['#f1c9a5', '#d9a47c', '#a8724f', '#7a4f35', '#f5d6bb'],
+    hair: ['#2a2420', '#5b3a24', '#a8743f', '#d8c08a', '#8a8a8a', '#1d1d1f'],
+    umbrella: ['#d64545', '#2f6fb3', '#f0b429', '#3a3a3a', '#7d4fb3', '#2e9c6a'],
+  };
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const svgUri = (s) => 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s) + '")';
+  // a walking person, facing right, feet at the bottom of a 44 x 136 box (drawing units: about 1.75 m tall)
+  const walkerSVG = (c, umbrella) => {
+    const step = (a, b, dur, cx, cy) => `<animateTransform attributeName="transform" type="rotate" values="${a} ${cx} ${cy};${b} ${cx} ${cy};${a} ${cx} ${cy}" dur="${dur}s" repeatCount="indefinite"/>`;
+    const leg = (fill, a, b) => `<g>${step(a, b, 1.1, 22, 84)}<rect x="18.5" y="84" width="7" height="44" rx="3.5" fill="${fill}"/><path d="M18 126 h12 a3 3 0 0 1 0 6 h-12 z" fill="#1f1f22"/></g>`;
+    const backArm = umbrella ? '' : `<g>${step(18, -18, 1.1, 22, 58)}<rect x="19" y="56" width="6" height="30" rx="3" fill="${c.coatDark}"/></g>`;
+    const frontArm = umbrella
+      ? `<path d="M24 60 L33 50 L33 46" fill="none" stroke="${c.coat}" stroke-width="6" stroke-linecap="round"/><circle cx="33" cy="45" r="3" fill="${c.skin}"/>`
+      : `<g>${step(-18, 18, 1.1, 22, 58)}<rect x="19" y="56" width="6" height="30" rx="3" fill="${c.coat}"/><circle cx="22" cy="86" r="3" fill="${c.skin}"/></g>`;
+    const brolly = umbrella
+      ? `<line x1="33" y1="47" x2="33" y2="2" stroke="#3a3a3a" stroke-width="1.6"/><path d="M5 14 Q33 -16 61 14 Q54 9 47 14 Q40 9 33 14 Q26 9 19 14 Q12 9 5 14 Z" fill="${c.umbrella}"/><path d="M33 -2 L33 -6" stroke="#3a3a3a" stroke-width="1.6"/>`
+      : '';
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${umbrella ? '-4 -8 70 144' : '0 0 44 136'}"><g>` +
+      `<animateTransform attributeName="transform" type="translate" values="0 0;0 -1.2;0 0;0 -1.2;0 0" dur="1.1s" repeatCount="indefinite"/>` +
+      leg(c.pantsDark, 20, -20) + backArm + leg(c.pants, -20, 20) +
+      `<rect x="12" y="52" width="21" height="38" rx="8" fill="${c.coat}"/>` +
+      `<rect x="19" y="44" width="7" height="10" rx="3" fill="${c.skin}"/>` +
+      `<circle cx="23" cy="36" r="10" fill="${c.skin}"/>` +
+      `<path d="M13 35 Q13 23 24 23 Q34 23 34 33 Q28 29 22 30 Q17 31 16 38 Z" fill="${c.hair}"/>` +
+      `<circle cx="28.5" cy="36" r="1.2" fill="#1d1d1f"/>` +
+      frontArm + brolly + `</g></svg>`;
+  };
+  // a cyclist, facing right, wheels on the ground, 96 x 120 box
+  const cyclistSVG = (c) => {
+    const spin = `<animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="0.9s" repeatCount="indefinite"/>`;
+    const wheel = (x) => `<g transform="translate(${x} 102)"><circle r="16" fill="none" stroke="#2a2a2e" stroke-width="3"/><g>${spin}<path d="M-15 0H15M0 -15V15M-10.6 -10.6L10.6 10.6M-10.6 10.6L10.6 -10.6" stroke="#6d6d74" stroke-width="1"/></g><circle r="2" fill="#6d6d74"/></g>`;
+    const legs = (fill, phase) => `<g><animateTransform attributeName="transform" type="rotate" values="${-10 + phase} 46 70;${22 - phase} 46 70;${-10 + phase} 46 70" dur="0.9s" repeatCount="indefinite"/>` +
+      `<rect x="43" y="68" width="7" height="22" rx="3.5" fill="${fill}" transform="rotate(-35 46 70)"/></g>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 120">` +
+      wheel(18) + wheel(78) +
+      `<path d="M18 102 L40 74 L66 74 L78 102 M40 74 L50 102 L66 74 M50 102 L18 102" fill="none" stroke="${c.bike}" stroke-width="3" stroke-linejoin="round"/>` +
+      `<path d="M66 74 L70 60 M64 60 H76" stroke="#2a2a2e" stroke-width="3" stroke-linecap="round"/><path d="M36 70 H46" stroke="#2a2a2e" stroke-width="4" stroke-linecap="round"/>` +
+      legs(c.pantsDark, 14) + legs(c.pants, 0) +
+      `<path d="M44 70 L56 40" stroke="${c.coat}" stroke-width="13" stroke-linecap="round"/>` +
+      `<path d="M55 44 L70 58" stroke="${c.coat}" stroke-width="5.5" stroke-linecap="round"/><circle cx="71" cy="59" r="2.8" fill="${c.skin}"/>` +
+      `<circle cx="61" cy="27" r="9.5" fill="${c.skin}"/><path d="M51 26 Q52 15 62 15 Q71 16 71 25 Q65 21 59 22 Q54 23 54 30 Z" fill="${c.hair}"/><circle cx="66" cy="27" r="1.2" fill="#1d1d1f"/>` +
+      `</svg>`;
+  };
+  // someone walking a small dog on a leash (dog ahead, on the right)
+  const dogWalkerSVG = (c, umbrella) => {
+    const person = walkerSVG(c, umbrella).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+    const dogInner = (typeof DOG_SVG === 'string' ? DOG_SVG : '').replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -8 140 144">${person}` +
+      `<path d="M${umbrella ? 34 : 23} ${umbrella ? 47 : 86} Q60 ${umbrella ? 96 : 104} 104 112" fill="none" stroke="#3a2a22" stroke-width="1.2"/>` +
+      `<g transform="translate(76 104) scale(0.62)">${dogInner}</g></svg>`;
+  };
+  const shade = (hex, f) => '#' + hex.slice(1).match(/../g).map((x) => Math.max(0, Math.min(255, Math.round(parseInt(x, 16) * f))).toString(16).padStart(2, '0')).join('');
+  const newColors = () => {
+    const coat = pick(PEOPLE_COLORS.coat), pants = pick(PEOPLE_COLORS.pants);
+    return { coat, coatDark: shade(coat, 0.78), pants, pantsDark: shade(pants, 0.8), skin: pick(PEOPLE_COLORS.skin), hair: pick(PEOPLE_COLORS.hair),
+      umbrella: pick(PEOPLE_COLORS.umbrella), bike: pick(['#2f6fb3', '#c0564b', '#2a2a2e', '#4f8f88', '#e0a32e']) };
+  };
+  // where they go, in drawing units (887 wide): feet on the street behind the hedge, or on the grass in front of it
+  const PEOPLE_KINDS = {
+    walker: { layer: 'street', w: 44, h: 136, feet: 1328, speed: 42, svg: (c, u) => walkerSVG(c, u) },
+    umbrella: { layer: 'street', w: 70, h: 144, feet: 1328, speed: 38, svg: (c) => walkerSVG(c, true), umbrella: true },
+    cyclist: { layer: 'street', w: 96, h: 120, feet: 1336, speed: 120, svg: (c) => cyclistSVG(c) },
+    dogwalker: { layer: 'grass', w: 140, h: 144, feet: 1404, speed: 40, svg: (c, u) => dogWalkerSVG(c, u), scale: 1.12 },
+  };
+  const RAINY = ['rainy', 'pouring', 'lightning-rainy', 'snowy-rainy', 'sleet'];
+  // send one person across now; kind: walker | cyclist | dogwalker; rain decides the umbrella
+  const sendPerson = (kind, wx, tod) => {
+    if (!scene || !scene.people) return null;
+    const rain = RAINY.includes(wx);
+    if (rain && kind === 'cyclist') kind = 'walker';
+    const k = rain && kind === 'walker' ? PEOPLE_KINDS.umbrella : PEOPLE_KINDS[kind];
+    const host = scene.people[k.layer];
+    if (!host) return null;
+    const u = host.parentElement.clientWidth / 887;
+    if (!u) return null;
+    const s = k.scale || 1;
+    const el = document.createElement('i');
+    const w = k.w * s, h = k.h * s;
+    Object.assign(el.style, { position: 'absolute', left: '0', top: (k.feet - h) * u + 'px', width: w * u + 'px', height: h * u + 'px',
+      background: svgUri(k.svg(newColors(), rain)) + ' center / 100% 100% no-repeat', willChange: 'transform' });
+    if (tod === 'night') el.style.filter = 'brightness(0.55) saturate(0.8)';
+    else if (tod !== 'day') el.style.filter = 'brightness(0.78) saturate(0.9)';
+    host.appendChild(el);
+    const rtl = Math.random() < 0.5;
+    const from = rtl ? 887 + 20 : -w - 20, to = rtl ? -w - 20 : 887 + 20;
+    const flip = rtl ? ' scaleX(-1)' : '';
+    const dist = Math.abs(to - from);
+    const a = el.animate([{ transform: 'translateX(' + from * u + 'px)' + flip }, { transform: 'translateX(' + to * u + 'px)' + flip }],
+      { duration: dist / k.speed * 1000, easing: 'linear' });
+    a.onfinish = a.oncancel = () => el.remove();
+    return a;
+  };
+  const PEOPLE_MIX = [['walker', 45], ['cyclist', 25], ['dogwalker', 30]];
+  const peopleTick = () => {
+    setTimeout(peopleTick, (25 + Math.random() * 35) * 1000);
+    if (document.hidden || still || !scene || !houseSlug) return;
+    if (!/\/mijn-huis(\/huis)?\/?$/.test(location.pathname)) return;
+    const tod = houseSlug.split('-').pop(), wx = houseSlug.slice(0, houseSlug.lastIndexOf('-'));
+    if (tod === 'night' && Math.random() < 0.5) return;
+    let r = Math.random() * 100, kind = 'walker';
+    for (const [k, w] of PEOPLE_MIX) { if ((r -= w) < 0) { kind = k; break; } }
+    sendPerson(kind, wx, tod);
+  };
+  setTimeout(peopleTick, (6 + Math.random() * 9) * 1000);
   let hui = null;
   const findHui = (root) => {
     for (const n of root.querySelectorAll('*')) {
