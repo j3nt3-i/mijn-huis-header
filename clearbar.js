@@ -163,10 +163,12 @@
   const remember = (k, v) => { last[k] = v; try { localStorage.setItem(LAST_KEY, JSON.stringify(last)); } catch (e) { /* private mode */ } };
   const setVar = (k, v) => { if (document.documentElement.style.getPropertyValue(k) !== v) document.documentElement.style.setProperty(k, v); };
   // The windows/cat overlay only appears once the illustration under it has loaded, so the windows never float on
-  // an empty sky (it is tiny inline code and would otherwise always win the race).
-  let houseReady = false;
+  // an empty sky (it is tiny inline code and would otherwise always win the race). The layered scene reads
+  // --np-ov-l; the card's own background only gets --np-ov while it shows the plain drawing, so a card that HA has
+  // just built anew never shows windows on an empty sky.
+  let houseReady = false, plainShown = false;
   const whenLoaded = (url) => new Promise((ok) => { const i = new Image(); i.onload = i.onerror = () => ok(); i.src = url; });
-  const showOverlay = () => { houseReady = true; if (last.ov) setVar('--np-ov', last.ov); };
+  const showOverlay = () => { houseReady = true; if (!last.ov) return; setVar('--np-ov-l', last.ov); if (plainShown) setVar('--np-ov', last.ov); };
   const applyHouse = (slug, url) => {
     setVar('--np-sky', SKY[slug]);
     houseSlug = slug;
@@ -177,7 +179,7 @@
   let fallbackTimer = 0;
   const fallbackLater = (url) => {
     clearTimeout(fallbackTimer);
-    fallbackTimer = setTimeout(() => { if (!scene) { setVar('--np-house', 'url("' + url + '")'); showOverlay(); } }, 4000);
+    fallbackTimer = setTimeout(() => { if (!scene) { plainShown = true; setVar('--np-house', 'url("' + url + '")'); showOverlay(); } }, 4000);
   };
   if (last.house && last.sky) setVar('--np-sky', last.sky);
   // Window light and the calico cat, drawn over the illustration (pieces are URL-encoded SVG, 2400-wide house coordinates).
@@ -200,7 +202,8 @@
       (down ? '' : (tod === 'day' ? OV.downDay : OV.downNight)) + (up || tod === 'day' ? OV.cat : OV.sil) + OV.tail;
     const v = 'url("data:image/svg+xml;charset=utf-8,' + svg + '")';
     if (last.ov !== v) remember('ov', v);
-    if (houseReady) setVar('--np-ov', v);
+    if (houseReady) setVar('--np-ov-l', v);
+    if (plainShown) setVar('--np-ov', v);
   };
   // Drawings are kept on the device in IndexedDB (Cache Storage needs https; the app often uses http on the LAN),
   // keyed by SIG_KEY so a new upload is fetched again. Then a reopen needs no network at all.
@@ -369,7 +372,7 @@
       sr.appendChild(st);
     }
     const want = pendingScene || (hc.querySelector('np-scene') ? null : scene);
-    if (want) { pendingScene = null; try { showScene(hc, want); } catch (e) { /* plain drawing stays */ } }
+    if (want) { pendingScene = null; try { if (want !== scene || !moveScene(hc)) showScene(hc, want); } catch (e) { /* plain drawing stays */ } }
     let nb = hc.querySelector('np-birds');
     if (!nb) {
       nb = document.createElement('np-birds');
@@ -409,7 +412,7 @@
     'np-scene .stage > i { position: absolute; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.full { inset: 0; } np-scene .stage > i.mask { overflow: hidden; } ' +
     'np-scene .stage > i.mask > i { position: absolute; left: 0; width: 100%; display: block; background: center / 100% 100% no-repeat; } ' +
-    'np-scene .stage > i.ov { background-image: var(--np-ov, none); } ' +
+    'np-scene .stage > i.ov { background-image: var(--np-ov-l, none); } ' +
     // the old single-image layer goes away completely (also its sky colour, which would shine through the bottom fade)
     'ha-card[np-layered]::before { background: none !important; }';
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -713,6 +716,25 @@
     }
     placeSun();
     placeMoon();
+  };
+  // HA sometimes builds the header card anew (often when the app comes back after a while): move the scene that is
+  // already built and decoded into the new card, instead of building and decoding it all again
+  const moveScene = (hc) => {
+    const first = scene && scene.layers.find((L) => L.node);
+    const ns = first && first.node.closest('np-scene');
+    if (!ns || ns.isConnected) return false;
+    const sr = hc.getRootNode();
+    if (!sr.querySelector('style[data-np-scene]')) {
+      const st = document.createElement('style');
+      st.setAttribute('data-np-scene', '');
+      st.textContent = SCENE_CSS;
+      sr.appendChild(st);
+    }
+    hc.insertBefore(ns, hc.querySelector('np-birds'));
+    hc.setAttribute('np-layered', '');
+    for (const L of scene.layers) if (L.running && L.running.playState !== 'running') L.running.play();
+    placeScene(ns.querySelector('.stage'));
+    return true;
   };
   const showScene = (hc, next) => {
     const sr = hc.getRootNode();

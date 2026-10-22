@@ -90,7 +90,7 @@ __SKY____OV____CRITTERS____WEATHER__
     const wx = $('wx').value, tod = $('tod').value, slug = wx + '-' + tod;
     const down = $('down').checked, up = $('up').checked;
     document.documentElement.style.setProperty('--np-sky', SKY[slug] || '#2c3245');
-    document.documentElement.style.setProperty('--np-ov', 'url("data:image/svg+xml;charset=utf-8,' + OV.head + (up ? OV.upOn : (LIT_UP.includes(slug) ? OV.upOff : '')) +
+    document.documentElement.style.setProperty('--np-ov-l', 'url("data:image/svg+xml;charset=utf-8,' + OV.head + (up ? OV.upOn : (LIT_UP.includes(slug) ? OV.upOff : '')) +
       (down ? '' : (tod === 'day' ? OV.downDay : OV.downNight)) + (up || tod === 'day' ? OV.cat : OV.sil) + OV.tail + '")');
     nb.toggleAttribute('show', BIRD_WEATHER.includes(wx) && tod !== 'night');
     nb.toggleAttribute('dim', tod === 'dawn' || tod === 'dusk');

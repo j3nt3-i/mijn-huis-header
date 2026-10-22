@@ -134,7 +134,7 @@ button{cursor:pointer}
     'np-scene .stage > i { position: absolute; display: block; background: center / 100% 100% no-repeat; } ' +
     'np-scene .stage > i.full { inset: 0; } np-scene .stage > i.mask { overflow: hidden; } ' +
     'np-scene .stage > i.mask > i { position: absolute; left: 0; width: 100%; display: block; background: center / 100% 100% no-repeat; } ' +
-    'np-scene .stage > i.ov { background-image: var(--np-ov, none); } ' +
+    'np-scene .stage > i.ov { background-image: var(--np-ov-l, none); } ' +
     // the old single-image layer goes away completely (also its sky colour, which would shine through the bottom fade)
     'ha-card[np-layered]::before { background: none !important; }';
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -438,6 +438,25 @@ button{cursor:pointer}
     }
     placeSun();
     placeMoon();
+  };
+  // HA sometimes builds the header card anew (often when the app comes back after a while): move the scene that is
+  // already built and decoded into the new card, instead of building and decoding it all again
+  const moveScene = (hc) => {
+    const first = scene && scene.layers.find((L) => L.node);
+    const ns = first && first.node.closest('np-scene');
+    if (!ns || ns.isConnected) return false;
+    const sr = hc.getRootNode();
+    if (!sr.querySelector('style[data-np-scene]')) {
+      const st = document.createElement('style');
+      st.setAttribute('data-np-scene', '');
+      st.textContent = SCENE_CSS;
+      sr.appendChild(st);
+    }
+    hc.insertBefore(ns, hc.querySelector('np-birds'));
+    hc.setAttribute('np-layered', '');
+    for (const L of scene.layers) if (L.running && L.running.playState !== 'running') L.running.play();
+    placeScene(ns.querySelector('.stage'));
+    return true;
   };
   const showScene = (hc, next) => {
     const sr = hc.getRootNode();
@@ -815,7 +834,7 @@ button{cursor:pointer}
     const wx = $('wx').value, tod = $('tod').value, slug = wx + '-' + tod;
     const down = $('down').checked, up = $('up').checked;
     document.documentElement.style.setProperty('--np-sky', SKY[slug] || '#2c3245');
-    document.documentElement.style.setProperty('--np-ov', 'url("data:image/svg+xml;charset=utf-8,' + OV.head + (up ? OV.upOn : (LIT_UP.includes(slug) ? OV.upOff : '')) +
+    document.documentElement.style.setProperty('--np-ov-l', 'url("data:image/svg+xml;charset=utf-8,' + OV.head + (up ? OV.upOn : (LIT_UP.includes(slug) ? OV.upOff : '')) +
       (down ? '' : (tod === 'day' ? OV.downDay : OV.downNight)) + (up || tod === 'day' ? OV.cat : OV.sil) + OV.tail + '")');
     nb.toggleAttribute('show', BIRD_WEATHER.includes(wx) && tod !== 'night');
     nb.toggleAttribute('dim', tod === 'dawn' || tod === 'dusk');
