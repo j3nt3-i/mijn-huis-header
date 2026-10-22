@@ -20,12 +20,15 @@
   const segCss = ' /*np-seg*/ ' +
     'ha-tab-group::part(tabs) { transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1); gap: 2px; padding: 3px; border-radius: 999px; background: rgba(var(--rgb-primary-text-color), 0.06); margin: 8px auto 0 auto; width: fit-content; height: 40px !important; box-sizing: border-box; align-items: center !important; border: none !important; } ' +
     'ha-tab-group::part(nav) { display: flex; align-items: center; justify-content: center; height: 100%; } ' +
-    'ha-tab-group-tab { height: 34px !important; min-height: 34px; margin: 0 !important; border-radius: 999px; border-bottom: none !important; box-shadow: none !important; transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1), color 0.35s cubic-bezier(0.4, 0, 0.2, 1); } ' +
-    'ha-tab-group-tab::part(base) { height: 34px; padding: 0 14px; border-radius: 999px; transition: color 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important; } ' +
+    'ha-tab-group-tab { height: 34px !important; min-height: 34px; margin: 0 !important; border-radius: 999px; border-bottom: none !important; box-shadow: none !important; transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important; color: inherit !important; } ' +
+    // one colour transition only (on the header); tabs, their inner part and icons just inherit it, so all three change
+    // together (on iOS each tab's own transition ran at a different pace)
+    'ha-tab-group-tab::part(base) { height: 34px; padding: 0 14px; border-radius: 999px; color: inherit !important; transition: none !important; } ' +
+    'ha-tab-group-tab ha-icon { color: inherit !important; transition: none !important; } ' +
     'ha-tab-group-tab[active] { background: rgba(var(--rgb-primary-text-color), 0.12); } ' +
     ':host([np-clear]) ha-tab-group::part(tabs) { background: rgba(255, 255, 255, 0.16); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); } ' +
     ':host([np-clear]) ha-tab-group-tab[active] { background: rgba(255, 255, 255, 0.3); } ' +
-    ':host([np-clear]) ha-tab-group-tab { color: #fff !important; } ' +
+    ':host([np-clear]) ha-tab-group { color: #fff; } ' +
     // weather preview button, right next to the segmented control
     '.np-wx-btn { position: absolute; top: 8px; width: 40px; height: 40px; padding: 0; border: none; border-radius: 999px; cursor: pointer; ' +
     'display: none; align-items: center; justify-content: center; color: inherit; background: rgba(var(--rgb-primary-text-color), 0.06); ' +
