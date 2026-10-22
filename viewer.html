@@ -20,29 +20,35 @@ button{cursor:pointer}
 .bar .seg span{width:58px;height:34px;border-radius:999px;display:flex;align-items:center;justify-content:center}.bar .seg span.on{background:rgba(255,255,255,.3)}
 .bar .seg svg{width:22px;height:22px}
 .hint{font-size:12px;color:#888;line-height:1.5}
+.panel h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8a8a8a;margin:10px 0 -4px}
+.panel [hidden]{display:none!important}
 </style>
 <div class="phone"><div class="bar" id="bar"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></span><span class="seg"><span class="on"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a2 2 0 0 1 2 2v5.3a3.5 3.5 0 1 1-4 0V8a2 2 0 0 1 2-2z"/></svg></span></span><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg></span></div><div class="scroller" id="scroller"><div id="host"></div></div></div>
 <div class="panel">
   <h1>Header testen</h1>
+  <h2>Tekening</h2>
   <label>Weer<select id="wx"></select></label>
   <label>Dagdeel<select id="tod"><option value="dawn">Ochtendschemer</option><option value="day">Dag</option><option value="dusk">Avondschemer</option><option value="night">Nacht</option></select></label>
   <div class="row"><button id="prev">← Vorige</button><button id="next">Volgende →</button></div>
   <label>Laadanimatie<select id="style"><option value="cascade">Huidig (alles schuift in)</option><option value="apple">Apple-stijl (alleen het huis verschijnt)</option></select></label>
   <button id="enter">▶ Laadanimatie afspelen</button>
+  <label class="check"><input type="checkbox" id="light"> Lichte modus</label>
+  <h2>Huis</h2>
   <label class="check"><input type="checkbox" id="down" checked> Lampen beneden aan</label>
   <label class="check"><input type="checkbox" id="up" checked> Lampen boven aan</label>
   <label class="check"><input type="checkbox" id="music"> Muziek beneden (woonkamer/keuken)</label>
   <label class="check"><input type="checkbox" id="musicup"> Muziek boven (Hall display / first floor)</label>
-  <label class="check"><input type="checkbox" id="light"> Lichte modus</label>
-  <div class="row"><button id="dog">🐕 Hond nu laten lopen</button><button id="birds">🐦 Vogels nu laten vliegen</button></div>
-  <div class="row"><button id="pwalk">🚶 Wandelaar</button><button id="pbike">🚲 Fietser</button><button id="pdog">🦮 Met hondje</button></div>
-  <div class="row"><button id="shoot">🌠 Vallende ster</button><button id="plane">✈️ Vliegtuig</button></div>
-  <label>Stand van de zon (oost → west)<input type="range" id="sun" min="0" max="100" value="50" disabled></label>
-  <label class="check"><input type="checkbox" id="sunreal" checked> Zon zoals getekend</label>
-  <label>Maan op dit moment (vanuit Nederland)<input type="datetime-local" id="moont"></label>
-  <div class="row"><button id="mh-">− 1 uur</button><button id="mh+">+ 1 uur</button><button id="md+">+ 1 dag</button></div>
-  <label class="check"><input type="checkbox" id="moonreal"> Maan zoals getekend</label>
-  <div class="hint">Pijltjestoetsen ← → wisselen van tekening. Vogels en hond verschijnen alleen bij droog weer (zonnig, half bewolkt, bewolkt, winderig, sneeuw zonnig) en niet ’s nachts, zoals op het dashboard. Ze komen maar af en toe langs; met de knoppen start je meteen een ronde. De hond loopt over het gras voor de haag.</div>
+  <h2>Langs komen</h2>
+  <div class="row"><button id="pwalk">🚶 Wandelaar</button><button id="pbike" data-when="bike">🚲 Fietser</button><button id="pdog">🦮 Met hondje</button></div>
+  <div class="row" data-when="critters"><button id="dog">🐕 Hond</button><button id="birds">🐦 Vogels</button></div>
+  <h2 data-when="sky">Lucht</h2>
+  <div class="row"><button id="shoot" data-when="shoot">🌠 Vallende ster</button><button id="plane" data-when="plane">✈️ Vliegtuig</button></div>
+  <label data-when="sun">Stand van de zon (oost → west)<input type="range" id="sun" min="0" max="100" value="50" disabled></label>
+  <label class="check" data-when="sun"><input type="checkbox" id="sunreal" checked> Zon zoals getekend</label>
+  <label data-when="moon">Maan op dit moment (vanuit Nederland)<input type="datetime-local" id="moont"></label>
+  <div class="row" data-when="moon"><button id="mh-">− 1 uur</button><button id="mh+">+ 1 uur</button><button id="md+">+ 1 dag</button></div>
+  <label class="check" data-when="moon"><input type="checkbox" id="moonreal"> Maan zoals getekend</label>
+  <div class="hint">Pijltjestoetsen ← → wisselen van tekening. Je ziet alleen wat bij deze tekening hoort: vogels en de hond bij droog weer overdag, de fietser niet in de regen, vallende sterren in nachten met sterren, geen vliegtuigen bij mist, stortregen of onweer.</div>
   <div class="info" id="info"></div>
 </div>
 <script>
@@ -825,6 +831,13 @@ button{cursor:pointer}
     const t1 = performance.now();
     const sc = buildScene(text, slug);
     showScene(hc, sc);
+    // only the controls that do something in this drawing
+    const has = (k) => sc.layers.some((L) => L.kind === k);
+    const when = { bike: !RAINY.includes(wx), critters: BIRD_WEATHER.includes(wx) && tod !== 'night', shoot: tod === 'night' && has('twinkle'),
+      plane: !NO_PLANES.includes(wx), sun: has('sun'), moon: has('moon') };
+    when.sky = when.shoot || when.plane || when.sun || when.moon;
+    for (const el of document.querySelectorAll('[data-when]')) el.hidden = !when[el.dataset.when];
+    for (const row of document.querySelectorAll('.panel .row:not([data-when])')) row.hidden = ![...row.children].some((b) => !b.hidden);
     setLights(down, up);
     const t2 = performance.now();
     $('info').textContent = slug + '\nladen ' + Math.round(t1 - t0) + ' ms · lagen bouwen ' + Math.round(t2 - t1) + ' ms\n' +
