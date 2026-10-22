@@ -113,6 +113,9 @@ __SKY____OV____CRITTERS____WEATHER__
 })();
 </script></html>'''
 scene = scene.replace('@media (max-width: 870px) { ha-card[np-layered]', '@media (min-width: 0px) { ha-card[np-layered]')  # the phone frame is narrow, the window is not
+# helpers the scene code shares with the dashboard script's house logic
+scene = ("  const whenLoaded = (url) => new Promise((ok) => { const i = new Image(); i.onload = i.onerror = () => ok(); i.src = url; });\n"
+         "  const showOverlay = () => {};\n  let houseSlug = null;\n") + scene
 html = (html.replace('__SKY__', sky).replace('__OV__', ov).replace('__CRITTERS__', critters).replace('__WEATHER__', weather + scene))
 open('viewer.html', 'w').write(html)
 print('viewer.html', len(html) // 1024, 'KB')

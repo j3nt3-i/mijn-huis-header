@@ -151,14 +151,21 @@
   try { last = JSON.parse(localStorage.getItem(LAST_KEY) || '{}'); } catch (e) { last = {}; }
   const remember = (k, v) => { last[k] = v; try { localStorage.setItem(LAST_KEY, JSON.stringify(last)); } catch (e) { /* private mode */ } };
   const setVar = (k, v) => { if (document.documentElement.style.getPropertyValue(k) !== v) document.documentElement.style.setProperty(k, v); };
+  // The windows/cat overlay only appears once the illustration under it has loaded, so the windows never float on
+  // an empty sky (it is tiny inline code and would otherwise always win the race).
+  let houseReady = false;
+  const whenLoaded = (url) => new Promise((ok) => { const i = new Image(); i.onload = i.onerror = () => ok(); i.src = url; });
+  const showOverlay = () => { houseReady = true; if (last.ov) setVar('--np-ov', last.ov); };
   const applyHouse = (slug, url) => {
-    setVar('--np-house', 'url("' + url + '")');
     setVar('--np-sky', SKY[slug]);
     houseSlug = slug;
     remember('house', url); remember('sky', SKY[slug]);
+    whenLoaded(url).then(() => { setVar('--np-house', 'url("' + url + '")'); showOverlay(); });
   };
-  if (last.house && last.sky) { setVar('--np-house', 'url("' + last.house + '")'); setVar('--np-sky', last.sky); }
-  if (last.ov) setVar('--np-ov', last.ov);
+  if (last.house && last.sky) {
+    setVar('--np-sky', last.sky);
+    whenLoaded(last.house).then(() => { if (!houseReady) { setVar('--np-house', 'url("' + last.house + '")'); showOverlay(); } });
+  }
   // Window light and the calico cat, drawn over the illustration (pieces are URL-encoded SVG, 2400-wide house coordinates).
   // Downstairs is drawn lit in every illustration, so it only gets darkened when its lamps are off;
   // upstairs gets warm light when its lamps are on, and is only darkened on the clear nights where it is drawn lit.
@@ -179,7 +186,7 @@
       (down ? '' : (tod === 'day' ? OV.downDay : OV.downNight)) + (up || tod === 'day' ? OV.cat : OV.sil) + OV.tail;
     const v = 'url("data:image/svg+xml;charset=utf-8,' + svg + '")';
     if (last.ov !== v) remember('ov', v);
-    setVar('--np-ov', v);
+    if (houseReady) setVar('--np-ov', v);
   };
   const setHouse = async (ha, slug) => {
     if (slug === houseSlug || slug === pending) return;
@@ -203,7 +210,9 @@
         try {
           if (!headerCard || !headerCard.isConnected) headerCard = findHeaderCard(hui ? hui.shadowRoot : document);
           const hc = headerCard && headerCard.shadowRoot && headerCard.shadowRoot.querySelector('ha-card');
-          if (text && hc) showScene(hc, buildScene(text, slug));
+          // build the layers now; if the dashboard has not drawn the header card yet (right after a refresh),
+          // keep them and let the update loop put them in as soon as the card is there
+          if (text) { const built = buildScene(text, slug); if (hc) showScene(hc, built); else pendingScene = built; }
         } catch (e) { console.warn('np-scene', e); }
       }
     } catch (e) { /* try again on the next tick */ }
@@ -242,7 +251,8 @@
     ';animation-duration:' + (1.5 + ((n + k) % 4) * 0.3).toFixed(1) + 's;animation-delay:-' + (k * 0.6) + 's"></i>').join('') + '</b>').join('');
   const BIRD_CSS = 'np-birds { position: absolute; z-index: -1; pointer-events: none; left: 0; width: 100%; overflow: hidden; display: block; ' +
     'top: calc(-1 * (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); ' +
-    'animation: np-house-stay linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
+    'will-change: transform; animation: np-pin linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
+    '@keyframes np-pin { from { transform: translateY(0); } to { transform: translateY(1000px); } } ' +
     'np-birds:not([show]) b, np-birds:not([show]) u { display: none; } ' +
     // music notes drift up out of the living room window (music downstairs) and out of an upstairs window
     // (Hall display / first floor group); both when everything plays
@@ -299,7 +309,8 @@
       st.textContent = BIRD_CSS;
       sr.appendChild(st);
     }
-    if (scene && !hc.querySelector('np-scene')) { try { showScene(hc, scene); } catch (e) { /* plain drawing stays */ } }
+    const want = pendingScene || (hc.querySelector('np-scene') ? null : scene);
+    if (want) { pendingScene = null; try { showScene(hc, want); } catch (e) { /* plain drawing stays */ } }
     let nb = hc.querySelector('np-birds');
     if (!nb) {
       nb = document.createElement('np-birds');
@@ -325,12 +336,15 @@
   // moves with transforms/opacity. The heavy drawing is then never redrawn per frame, which keeps the iPhone smooth.
   const NONPAINT = new Set(['defs', 'mask', 'clipPath', 'linearGradient', 'radialGradient', 'filter', 'pattern', 'symbol',
     'style', 'title', 'desc', 'metadata', 'animate', 'animateTransform', 'set']);
+  // np-scene is a frame that scrolls with the page (its soft bottom edge stays put, no mask animation);
+  // inside it, .pin keeps the illustration still with a scroll-linked translate only, which the GPU can do.
   const SCENE_CSS = 'np-scene { position: absolute; z-index: -1; pointer-events: none; left: 0; width: 100%; overflow: hidden; ' +
     'top: calc(-1 * (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); ' +
-    'background: var(--np-sky, #2c3245); ' +
-    '-webkit-mask: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%) top / 100% 100% no-repeat; mask: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%) top / 100% 100% no-repeat; ' +
-    'animation: np-house-stay linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
-    'np-scene::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 86%, color-mix(in srgb, var(--primary-background-color) 15%, transparent) 90%, ' +
+    '-webkit-mask: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%) top / 100% 100% no-repeat; mask: linear-gradient(to bottom, #000 calc(100% - 48px), transparent 100%) top / 100% 100% no-repeat; } ' +
+    'np-scene .pin { position: absolute; inset: 0; background: var(--np-sky, #2c3245); will-change: transform; ' +
+    'animation: np-pin linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
+    '@keyframes np-pin { from { transform: translateY(0); } to { transform: translateY(1000px); } } ' +
+    'np-scene .pin::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 86%, color-mix(in srgb, var(--primary-background-color) 15%, transparent) 90%, ' +
     'color-mix(in srgb, var(--primary-background-color) 50%, transparent) 94%, color-mix(in srgb, var(--primary-background-color) 85%, transparent) 98%, var(--primary-background-color) 100%); } ' +
     'np-scene .stage { position: absolute; left: 0; bottom: 0; width: 100%; aspect-ratio: 887 / 1662; } ' +
     'np-scene .stage > i { position: absolute; display: block; background: center / 100% 100% no-repeat; } ' +
@@ -346,6 +360,8 @@
     .map((a) => ' ' + a.name + '="' + esc(a.value) + '"').join('') + '>';
   const nums = (s) => s.split(/\s+/).map(Number);
   let scene = null;  // { slug, urls, layers: [{ el, kind, box, anim }] }
+  let pendingScene = null;  // built before the header card existed
+  let sceneToken = 0;
   const buildScene = (text, slug) => {
     const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
     const root = doc.documentElement;
@@ -506,11 +522,12 @@
     let ns = hc.querySelector('np-scene');
     if (!ns) {
       ns = document.createElement('np-scene');
-      ns.innerHTML = '<div class="stage"></div>';
+      ns.innerHTML = '<div class="pin"><div class="stage"></div></div>';
       hc.insertBefore(ns, hc.querySelector('np-birds'));
-      new ResizeObserver(() => placeScene(ns.firstChild)).observe(ns.firstChild);
+      const st = ns.querySelector('.stage');
+      new ResizeObserver(() => placeScene(st)).observe(st);
     }
-    const stage = ns.firstChild;
+    const stage = ns.querySelector('.stage');
     const frag = document.createDocumentFragment();
     for (const L of next.layers) {
       if (L.running) { L.running.cancel(); L.running = null; }
@@ -531,13 +548,20 @@
       if (L.kind === 'leaf') el.style.transformOrigin = 'center';
       frag.appendChild(el);
     }
-    const old = scene;
-    stage.replaceChildren(frag);
-    scene = next;
-    placeScene(stage);
-    hc.setAttribute('np-layered', '');
-    setLights(lamps.down, lamps.up);
-    if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
+    // swap in the new layers only when all of them are decoded, so they appear together (at most 4 s wait)
+    const token = ++sceneToken;
+    const ready = Promise.race([Promise.all(next.urls.map(whenLoaded)), new Promise((ok) => setTimeout(ok, 4000))]);
+    ready.then(() => {
+      if (token !== sceneToken) return;  // a newer drawing was picked meanwhile
+      const old = scene;
+      stage.replaceChildren(frag);
+      scene = next;
+      placeScene(stage);
+      hc.setAttribute('np-layered', '');
+      setLights(lamps.down, lamps.up);
+      showOverlay();
+      if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
+    });
   };
   let hui = null;
   const findHui = (root) => {
