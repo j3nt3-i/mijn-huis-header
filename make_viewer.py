@@ -46,6 +46,9 @@ button{cursor:pointer}
   <label class="check"><input type="checkbox" id="light"> Lichte modus</label>
   <div class="row"><button id="dog">🐕 Hond nu laten lopen</button><button id="birds">🐦 Vogels nu laten vliegen</button></div>
   <div class="row"><button id="pwalk">🚶 Wandelaar</button><button id="pbike">🚲 Fietser</button><button id="pdog">🦮 Met hondje</button></div>
+  <div class="row"><button id="shoot">🌠 Vallende ster</button><button id="plane">✈️ Vliegtuig</button></div>
+  <label>Stand van de zon (oost → west)<input type="range" id="sun" min="0" max="100" value="50" disabled></label>
+  <label class="check"><input type="checkbox" id="sunreal" checked> Zon zoals getekend</label>
   <div class="hint">Pijltjestoetsen ← → wisselen van tekening. Vogels en hond verschijnen alleen bij droog weer (zonnig, half bewolkt, bewolkt, winderig, sneeuw zonnig) en niet ’s nachts, zoals op het dashboard. Ze komen maar af en toe langs; met de knoppen start je meteen een ronde. De hond loopt over het gras voor de haag.</div>
   <div class="info" id="info"></div>
 </div>
@@ -115,6 +118,18 @@ __SKY____OV____CRITTERS____WEATHER__
   $('dog').onclick = () => restart(nb.querySelectorAll('u'));
   // people: the same code as the dashboard (in the rain the walker carries an umbrella and the cyclist walks)
   for (const [id, kind] of [['pwalk', 'walker'], ['pbike', 'cyclist'], ['pdog', 'dogwalker']]) $(id).onclick = () => sendPerson(kind, $('wx').value, $('tod').value);
+  // sky: shooting stars (nights with stars) and aeroplanes, the same code as the dashboard
+  $('shoot').onclick = () => shootingStar();
+  $('plane').onclick = () => sendPlane($('tod').value);
+  // the sun: on the dashboard it follows sun.sun; here a slider walks it from east (left) to west (right)
+  const sunTest = () => {
+    $('sun').disabled = $('sunreal').checked;
+    const t = $('sun').value / 100;
+    sunSky = $('sunreal').checked ? null : { az: 60 + 240 * t, el: 58 * Math.sin(Math.PI * t) };
+    placeSun();
+  };
+  $('sun').addEventListener('input', sunTest);
+  $('sunreal').addEventListener('change', sunTest);
   $('birds').onclick = () => restart(nb.querySelectorAll('b'));
   const SLOW = Number(new URLSearchParams(location.search).get('slow') || 1);
   // the house and the cards live in a shadow root: include its animations too

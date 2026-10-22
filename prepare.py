@@ -1,6 +1,6 @@
 # Prepare Jente's drawings for the layered header. Each file stays one complete, valid SVG (it is also the static
 # fallback), with the moving parts tagged so the bar script can split it on the phone:
-#   data-np="fall|lamp|streak|leaf|bolt|glow|dark" + parameters  -> separate layers the page moves (cheap, composited)
+#   data-np="fall|lamp|streak|leaf|bolt|glow|dark|cloud|light|sun|twinkle|sparkle" + parameters  -> separate layers the page moves (cheap, composited)
 #   clouds get a slow SMIL sway in 2 steps per second (only the sky layer is redrawn, twice a second)
 #   data-np-break="1" on the last cloud ends the sky layer, so the heavy trees/house/hedge layer never has to be redrawn
 import json, re, os, glob
@@ -107,6 +107,39 @@ def prepare(slug, src):
         if right + left < 8: attrs['data-breathe'] = 0.06
         else: attrs.update({'data-l': round(left, 1), 'data-r': round(right, 1)})
         s = tag(s, m.group(0), attrs)
+    # the sun (day, dawn, dusk): sun and glow move together to where the sun really is (azimuth/elevation)
+    for lid in ('Zon', 'Zongloed'):
+        m = elem(s, lid)
+        c = m and re.search(r' cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"', s[m.start():m.start() + 300])  # a circle, or a group of circles
+        if not c: continue
+        cx, cy, r = map(float, c.groups())
+        s = tag(s, m.group(0), {'data-np': 'sun', 'data-box': f'{cx - r - 2:.1f} {cy - r - 2:.1f} {cx + r + 2:.1f} {cy + r + 2:.1f}', 'data-c': f'{cx} {cy}'})
+    # stars twinkle: every unbroken run of stars is split into three groups that each dim and brighten at their own
+    # pace (one layer per group, so it stays cheap), and Jente's "Fonkelende ster" sparkles each get their own layer
+    star = re.compile(r'<circle id="Ster(?:_\d+)?"[^>]*/>')
+    runs, run, end = [], [], -1
+    for m in star.finditer(s):
+        if run and s[end:m.start()].strip(): runs.append(run); run = []
+        run.append(m); end = m.end()
+    if run: runs.append(run)
+    for k, run in enumerate(reversed(runs)):
+        groups = []
+        for g in range(3):
+            items = run[g::3]
+            if not items: continue
+            xs = [float(re.search(r' cx="([\d.]+)"', i.group(0)).group(1)) for i in items]
+            ys = [float(re.search(r' cy="([\d.]+)"', i.group(0)).group(1)) for i in items]
+            dur = round(3.2 + (g * 1.3 + k * 0.7) % 2.6, 1)
+            groups.append(f'<g data-np="twinkle" data-box="{min(xs) - 4:.1f} {min(ys) - 4:.1f} {max(xs) + 4:.1f} {max(ys) + 4:.1f}" '
+                          f'data-dur="{dur}" data-begin="{round((g * 1.7 + k) % dur, 1)}">' + ''.join(i.group(0) for i in items) + '</g>')
+        s = s[:run[0].start()] + ''.join(groups) + s[run[-1].end():]
+    root = ET.fromstring(s)
+    for n, e in enumerate([e for e in root.iter() if re.match(r'Fonkelende ster(_\d+)?$', e.get('id') or '')]):
+        bx = ebox(e)
+        m = elem(s, e.get('id'))
+        if not bx or not m: continue
+        s = tag(s, m.group(0), {'data-np': 'sparkle', 'data-box': f'{bx[0] - 3:.1f} {bx[1] - 3:.1f} {bx[2] + 3:.1f} {bx[3] + 3:.1f}',
+                                'data-dur': round(2.4 + n * 0.55, 2), 'data-begin': round(n * 0.9, 1)})
     return s
 if __name__ == '__main__':
     os.makedirs('hh_prep', exist_ok=True)

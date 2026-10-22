@@ -155,7 +155,7 @@
   //  'cascade' - hidden until the illustration is ready, then it fades in and bar + sections slide in one by one
   //  'apple'   - bar and content are there at once; only the house appears (fade from the sky + slight zoom)
   const ENTRANCE = 'apple';
-  const SIG_KEY = 'np-house-sig-14';  // bump when the SVGs are replaced, so browsers fetch the new ones
+  const SIG_KEY = 'np-house-sig-15';  // bump when the SVGs are replaced, so browsers fetch the new ones
   let sigs = {};
   try { sigs = JSON.parse(localStorage.getItem(SIG_KEY) || '{}'); } catch (e) { sigs = {}; }
   let houseSlug = null, pending = null;
@@ -447,6 +447,11 @@
       }
     };
     walk(root);
+    // a sky layer for shooting stars and aeroplanes: in front of the sky and the sun, behind clouds, stars and trees
+    const np = (u) => !u.marker && u.getAttribute('data-np');
+    let skyAt = units.findIndex((u) => ['cloud', 'twinkle', 'sparkle'].includes(np(u)));
+    if (skyAt < 0) { skyAt = 1; units.forEach((u, i) => { if (np(u) === 'sun') skyAt = i + 1; }); }
+    units.splice(skyAt, 0, { marker: 'sky' });
     const segs = [];
     let cur = [];
     units.forEach((u, i) => {
@@ -485,7 +490,7 @@
     const layers = [];
     for (const sg of segs) {
       const L = { kind: sg.kind };
-      if (sg.kind === 'street' || sg.kind === 'grass') { layers.push(L); continue; }
+      if (sg.kind === 'street' || sg.kind === 'grass' || sg.kind === 'sky') { layers.push(L); continue; }
       if (sg.kind === 'static') {
         const keep = new Set(sg.ids);
         const c = root.cloneNode(true);
@@ -541,6 +546,23 @@
           const l = Number(el.getAttribute('data-l')), r = Number(el.getAttribute('data-r'));
           L.anim = (u) => [[{ transform: 'translateX(' + -l * u + 'px)' }, { transform: 'translateX(' + r * u + 'px)' }], opt];
         }
+      } else if (sg.kind === 'twinkle') {
+        // a third of the stars dims and brightens, at its own pace
+        L.box = box;
+        L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
+        L.anim = () => [[{ opacity: 1 }, { opacity: 0.35, offset: 0.3 }, { opacity: 0.85, offset: 0.5 }, { opacity: 0.5, offset: 0.75 }, { opacity: 1 }],
+          { duration: dur, iterations: Infinity, easing: 'ease-in-out', delay: -Number(el.getAttribute('data-begin') || 0) * 1000 }];
+      } else if (sg.kind === 'sparkle') {
+        // Jente's sparkling stars: shrink and fade, then flare up a little
+        L.box = box;
+        L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
+        L.anim = () => [[{ opacity: 1, transform: 'scale(1)' }, { opacity: 0.3, transform: 'scale(0.55)', offset: 0.4 },
+          { opacity: 1, transform: 'scale(1.18)', offset: 0.7 }, { opacity: 1, transform: 'scale(1)' }],
+          { duration: dur, iterations: Infinity, easing: 'ease-in-out', delay: -Number(el.getAttribute('data-begin') || 0) * 1000 }];
+      } else if (sg.kind === 'sun') {
+        // stands where the sun really is (placeSun)
+        L.box = box; L.c = nums(el.getAttribute('data-c'));
+        L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
       } else if (sg.kind === 'bolt' || sg.kind === 'glow' || sg.kind === 'dark') {
         const cyc = Number(el.getAttribute('data-cyc')) * 1000;
         const v = sg.kind === 'bolt' ? [0, 0, 1, 0.15, 1, 0, 0] : sg.kind === 'glow' ? [0.35, 0.35, 1, 0.5, 1, 0.35, 0.35] : [1, 1, 0, 0.6, 0, 1, 1];
@@ -582,6 +604,24 @@
       { duration: 420, delay: 120 + i * 50, easing: spring, fill: 'backwards' }));
   };
   const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Where the sun really is, in the drawings that show it. The front of the house faces north, so we look south:
+  // east on the left, west on the right, high above the middle at noon. Null (preview, test page): as drawn.
+  let sunSky = null;
+  const sunShift = (c, u) => {
+    if (!sunSky) return '';
+    const x = Math.max(-60, Math.min(947, 443.5 + (sunSky.az - 180) * 3.3));
+    // a low arc: even at midsummer noon the sun stays under the greeting
+    const y = 765 - Math.max(0, Math.min(62, sunSky.el)) * 4;
+    return 'translate(' + (x - c[0]) * u + 'px,' + (y - c[1]) * u + 'px)';
+  };
+  const placeSun = () => {
+    for (const L of (scene && scene.layers) || []) if (L.kind === 'sun' && L.node && L.node.parentElement) L.node.style.transform = sunShift(L.c, L.node.parentElement.clientWidth / 887);
+  };
+  const followSun = (states) => {
+    const a = states['sun.sun'] && states['sun.sun'].attributes;
+    const next = a && !(test.on && test.tod !== 'echt') ? { az: Number(a.azimuth), el: Number(a.elevation) } : null;
+    if (!next !== !sunSky || (next && (Math.abs(next.az - sunSky.az) > 0.2 || Math.abs(next.el - sunSky.el) > 0.2))) { sunSky = next; placeSun(); }
+  };
   const placeScene = (stage) => {
     if (!scene) return;
     const u = stage.clientWidth / 887;
@@ -599,6 +639,7 @@
         else L.running = L.target.animate(kf, opt);
       }
     }
+    placeSun();
   };
   const showScene = (hc, next) => {
     const sr = hc.getRootNode();
@@ -622,7 +663,7 @@
       if (L.running) { L.running.cancel(); L.running = null; }
       const el = document.createElement('i');
       L.node = L.target = el;
-      if (L.kind === 'static' || L.kind === 'ov' || L.kind === 'street' || L.kind === 'grass') el.className = 'full' + (L.kind === 'ov' ? ' ov' : '');
+      if (L.kind === 'static' || L.kind === 'ov' || L.kind === 'street' || L.kind === 'grass' || L.kind === 'sky') el.className = 'full' + (L.kind === 'ov' ? ' ov' : '');
       if (L.kind === 'dark') el.style.background = L.color;
       if (L.url && L.kind !== 'lamp') el.style.backgroundImage = 'url("' + L.url + '")';
       if (L.kind === 'lamp') {
@@ -633,8 +674,9 @@
         el.appendChild(inner);
         L.target = inner;
       }
-      if (L.anim) el.style.willChange = L.kind === 'bolt' || L.kind === 'glow' || L.kind === 'dark' ? 'opacity' : 'transform';
-      if (L.kind === 'leaf') el.style.transformOrigin = 'center';
+      if (L.anim) el.style.willChange = ['bolt', 'glow', 'dark', 'twinkle'].includes(L.kind) ? 'opacity' : L.kind === 'sparkle' ? 'transform, opacity' : 'transform';
+      if (L.kind === 'sun') el.style.willChange = 'transform';
+      if (L.kind === 'leaf' || L.kind === 'sparkle') el.style.transformOrigin = 'center';
       frag.appendChild(el);
     }
     // swap in the new layers only when all of them are decoded, so they appear together (at most 4 s wait)
@@ -647,6 +689,7 @@
       stage.replaceChildren(frag);
       next.people = {};
       for (const L of next.layers) if (L.kind === 'street' || L.kind === 'grass') next.people[L.kind] = L.node;
+      next.sky = (next.layers.find((L) => L.kind === 'sky') || {}).node;
       scene = next;
       placeScene(stage);
       hc.setAttribute('np-layered', '');
@@ -871,6 +914,70 @@
     a.onfinish = a.oncancel = () => el.remove();
     return a;
   };
+  // ---- Sky: now and then a shooting star at night, or an aeroplane passing high up -----------------------------------
+  // Both live in the sky layer (behind clouds, stars and trees) and are page animations (composited).
+  const SKY_DIM = { night: '', dawn: 'brightness(0.85)', dusk: 'brightness(0.8)', day: '' };
+  const shootingStar = () => {
+    const host = scene && scene.sky;
+    const u = host && host.parentElement.clientWidth / 887;
+    if (!u) return null;
+    const len = 70 + Math.random() * 60, rtl = Math.random() < 0.5, ang = (18 + Math.random() * 22) * Math.PI / 180;
+    const dx = Math.cos(ang) * (rtl ? -1 : 1), dy = Math.sin(ang), d = 150 + Math.random() * 90;
+    const x = 140 + Math.random() * 600, y = 420 + Math.random() * 150;  // the visible sky, under the bar
+    const el = document.createElement('i');
+    // the head is at the right end of the streak; it is turned along its path around that end
+    Object.assign(el.style, { position: 'absolute', left: (x - len) * u + 'px', top: y * u + 'px', width: len * u + 'px', height: Math.max(1.5, 2.4 * u) + 'px',
+      borderRadius: '999px', background: 'linear-gradient(to right, rgba(255,255,255,0), rgba(235,242,255,0.55) 70%, #fff)',
+      filter: 'drop-shadow(0 0 ' + 2 * u + 'px rgba(210,225,255,0.9))', transformOrigin: '100% 50%', willChange: 'transform, opacity' });
+    host.appendChild(el);
+    const turn = 'rotate(' + Math.atan2(dy, dx) + 'rad)';
+    const a = el.animate([
+      { transform: 'translate(0,0) ' + turn + ' scaleX(0.2)', opacity: 0 },
+      { transform: 'translate(' + dx * d * 0.25 * u + 'px,' + dy * d * 0.25 * u + 'px) ' + turn + ' scaleX(0.8)', opacity: 1, offset: 0.25 },
+      { transform: 'translate(' + dx * d * u + 'px,' + dy * d * u + 'px) ' + turn + ' scaleX(1)', opacity: 0 }],
+      { duration: 900 + Math.random() * 400, easing: 'cubic-bezier(0.3, 0, 0.8, 1)' });
+    a.onfinish = a.oncancel = () => el.remove();
+    return a;
+  };
+  // an aeroplane facing right, 40 x 12; at night only its lights: steady white, a red beacon and a white strobe
+  const PLANE_DAY = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 12"><path d="M3.4 5.4 L1.4 0.6 L4.6 0.6 L9.4 5.4 Z" fill="#c9d0da"/>' +
+    '<path d="M2.2 6.6 Q2.2 5 4.2 5 L33 5 Q38.2 5.2 39.6 6.7 Q38.2 8.2 33 8.2 L4.2 8.2 Q2.2 8.2 2.2 6.6 Z" fill="#f2f5f8"/>' +
+    '<path d="M4 7.4 L36 7.4 Q34.4 8.2 33 8.2 L4.2 8.2 Z" fill="#cdd4de"/><path d="M15.4 6.8 L24.6 6.8 L14.2 11.6 L11.6 11.6 Z" fill="#b7c0cc"/>' +
+    '<path d="M35.6 5.8 L37.6 6.2 L35.6 6.6 Z" fill="#7d8796"/></svg>';
+  const PLANE_NIGHT = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 12"><circle cx="20" cy="6.5" r="1.5" fill="#fff" opacity=".85"/>' +
+    '<circle cx="20" cy="8.6" r="1.5" fill="#ff5a4d"><animate attributeName="opacity" values="0;0;1;0" keyTimes="0;0.6;0.7;1" dur="1.3s" repeatCount="indefinite"/></circle>' +
+    '<circle cx="37" cy="6.5" r="1.3" fill="#fff"><animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.04;0.1;1" dur="1.9s" repeatCount="indefinite"/></circle></svg>';
+  const sendPlane = (tod) => {
+    const host = scene && scene.sky;
+    const u = host && host.parentElement.clientWidth / 887;
+    if (!u) return null;
+    const night = tod === 'night', rtl = Math.random() < 0.5, W = 30, H = 9, trail = night ? 0 : 160 + Math.random() * 120;
+    const y = 450 + Math.random() * 140, rise = (Math.random() - 0.5) * 40;
+    const el = document.createElement('b');
+    Object.assign(el.style, { position: 'absolute', left: '0', top: y * u + 'px', width: (W + trail) * u + 'px', height: H * u + 'px', display: 'block',
+      willChange: 'transform', filter: SKY_DIM[tod] || '' });
+    // contrail behind the plane, fading out towards its far end
+    if (trail) el.innerHTML = '<i style="position:absolute;left:0;top:' + 5.6 * u + 'px;width:' + (trail + 4) * u + 'px;height:' + Math.max(1, 1.6 * u) + 'px;' +
+      'border-radius:999px;background:linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.75))"></i>';
+    el.innerHTML += '<i style="position:absolute;right:0;top:0;width:' + W * u + 'px;height:' + H * u + 'px;background:' + svgUri(night ? PLANE_NIGHT : PLANE_DAY) + ' center / 100% 100% no-repeat"></i>';
+    host.appendChild(el);
+    const w = W + trail, from = rtl ? 887 + 20 : -w - 20, to = rtl ? -w - 20 : 887 + 20, flip = rtl ? ' scaleX(-1)' : '';
+    const a = el.animate([{ transform: 'translate(' + from * u + 'px,0)' + flip }, { transform: 'translate(' + to * u + 'px,' + rise * u + 'px)' + flip }],
+      { duration: Math.abs(to - from) / 22 * 1000, easing: 'linear' });
+    a.onfinish = a.oncancel = () => el.remove();
+    return a;
+  };
+  const NO_PLANES = ['fog', 'pouring', 'lightning', 'lightning-rainy'];
+  const skyTick = () => {
+    setTimeout(skyTick, (30 + Math.random() * 60) * 1000);
+    if (document.hidden || still || !scene || !houseSlug) return;
+    if (!/\/mijn-huis(\/huis)?\/?$/.test(location.pathname)) return;
+    const tod = houseSlug.split('-').pop(), wx = houseSlug.slice(0, houseSlug.lastIndexOf('-'));
+    const stars = scene.layers.some((L) => L.kind === 'twinkle');
+    if (tod === 'night' && stars && Math.random() < 0.6) shootingStar();
+    else if (!NO_PLANES.includes(wx) && Math.random() < 0.6) sendPlane(tod);
+  };
+  setTimeout(skyTick, (10 + Math.random() * 15) * 1000);
   const PEOPLE_MIX = [['walker', 45], ['cyclist', 25], ['dogwalker', 30]];
   const peopleTick = () => {
     setTimeout(peopleTick, (25 + Math.random() * 35) * 1000);
@@ -1012,7 +1119,7 @@
     h.toggleAttribute('np-page', onHuis && narrow && atScenes);
     const ha = document.querySelector('home-assistant');
     const states = (ha && ha.hass && ha.hass.states) || {};
-    if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); }
+    if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); followSun(states); }
     if (ha && ha.hass && onHuis) checkSnow(ha);
     // weather preview button next to the segmented control (Huis view only)
     h.toggleAttribute('np-huis', onHuis);

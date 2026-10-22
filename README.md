@@ -2,7 +2,9 @@
 
 De bewegende header van het Home Assistant-dashboard **Mijn huis**: Jentes eigen tekeningen van het huis voor
 14 weertypes × 4 dagdelen, waarin regen, sneeuw, wind, wolken en bliksem bewegen, de ramen meegaan met de lampen,
-de lapjeskat met haar staart zwiept, vogels en een hond voorbijkomen en muzieknootjes uit het raam zweven.
+de lapjeskat met haar staart zwiept, vogels, een hond en voorbijgangers langskomen en muzieknootjes uit het raam zweven.
+'s Nachts twinkelen de sterren en valt er af en toe een ster, overdag vliegt er soms een vliegtuig over, en de zon
+staat waar hij echt staat (het huis kijkt naar het noorden: oost links, west rechts).
 
 ## Snel bekijken
 
@@ -23,7 +25,8 @@ of blader met ← →. De testpagina gebruikt precies dezelfde code als het dash
 - **`hh_prep/`**: dezelfde tekeningen, voorbereid door `prepare.py`. Elk bestand is nog steeds de complete
   tekening (dat is ook de terugvaloptie), maar de bewegende delen zijn gemarkeerd met `data-np="…"`:
   `fall` (regen/sneeuw), `lamp` (druppels in het lamplicht), `streak` (windstrepen), `leaf`, `cloud`,
-  `bolt`/`glow`/`dark` (onweer) en `light` (lichtgloed van de woonkamer).
+  `bolt`/`glow`/`dark` (onweer), `light` (lichtgloed van de woonkamer), `sun` (zon en zongloed) en
+  `twinkle`/`sparkle` (sterren).
 - **`clearbar.js`**: het script dat als dashboard-resource draait. Het kiest de tekening (dagdeel volgt de zon,
   het weer kiest de tekening, sneeuwdek via Open-Meteo), haalt het bestand op en splitst het op de telefoon in
   lagen: de stilstaande delen worden één keer getekend, elke bewegende laag schuift de grafische chip
