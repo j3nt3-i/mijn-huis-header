@@ -72,7 +72,7 @@ __SKY____OV____CRITTERS____WEATHER__
   const host = $('host'); const sr = host.attachShadow({ mode: 'open' });
   sr.innerHTML = `<style>
     ha-card{display:block;position:relative;aspect-ratio:2400/3690;--header-height:56px;margin-top:32px;margin-bottom:calc(-81.76px - 4px);padding:44px 20px 0;box-sizing:border-box;color:#fff;font-family:inherit}
-    @media (min-width:0){ha-card{margin-bottom:calc(-81.76px - 16px)}}
+    @media (min-width:0){ha-card{margin-bottom:calc(-81.76px - 40px)}}
     ha-card::before{content:'';position:absolute;z-index:-1;top:-56px;left:0;width:100%;height:calc(100% + 56px);background:var(--np-house,none) center bottom/100% auto no-repeat var(--np-sky,#2c3245)}
     @keyframes np-house-stay{from{transform:translateY(0)}to{transform:translateY(1000px)}}
     h2{margin:0;font-size:28px;text-shadow:0 1px 10px #0003}p{margin:6px 0 0;font-size:14px;color:#ffffffe0;max-width:72%}
