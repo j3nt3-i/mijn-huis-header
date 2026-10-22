@@ -155,7 +155,7 @@
   //  'cascade' - hidden until the illustration is ready, then it fades in and bar + sections slide in one by one
   //  'apple'   - bar and content are there at once; only the house appears (fade from the sky + slight zoom)
   const ENTRANCE = 'apple';
-  const SIG_KEY = 'np-house-sig-15';  // bump when the SVGs are replaced, so browsers fetch the new ones
+  const SIG_KEY = 'np-house-sig-16';  // bump when the SVGs are replaced, so browsers fetch the new ones
   let sigs = {};
   try { sigs = JSON.parse(localStorage.getItem(SIG_KEY) || '{}'); } catch (e) { sigs = {}; }
   let houseSlug = null, pending = null;
@@ -559,6 +559,11 @@
         L.anim = () => [[{ opacity: 1, transform: 'scale(1)' }, { opacity: 0.3, transform: 'scale(0.55)', offset: 0.4 },
           { opacity: 1, transform: 'scale(1.18)', offset: 0.7 }, { opacity: 1, transform: 'scale(1)' }],
           { duration: dur, iterations: Infinity, easing: 'ease-in-out', delay: -Number(el.getAttribute('data-begin') || 0) * 1000 }];
+      } else if (sg.kind === 'moon') {
+        // Jente's moon as drawn (previews); with the real moon the page draws a round one instead (placeMoon)
+        L.box = box; L.c = nums(el.getAttribute('data-c'));
+        L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
+        if (el.getAttribute('data-moon') === 'disc') L.disc = { r: Number(el.getAttribute('data-r')), c1: el.getAttribute('data-c1'), c2: el.getAttribute('data-c2'), op: el.getAttribute('data-op') };
       } else if (sg.kind === 'sun') {
         // stands where the sun really is (placeSun)
         L.box = box; L.c = nums(el.getAttribute('data-c'));
@@ -622,6 +627,81 @@
     const next = a && !(test.on && test.tod !== 'echt') ? { az: Number(a.azimuth), el: Number(a.elevation) } : null;
     if (!next !== !sunSky || (next && (Math.abs(next.az - sunSky.az) > 0.2 || Math.abs(next.el - sunSky.el) > 0.2))) { sunSky = next; placeSun(); }
   };
+  // ---- Moon: where it really is and how much of it is lit (formulas after SunCalc by Vladimir Agafonkin) --------
+  const RAD = Math.PI / 180, OBL = RAD * 23.4397;
+  const astroDays = (t) => t / 864e5 - 0.5 + 2440588 - 2451545;
+  const raOf = (l, b) => Math.atan2(Math.sin(l) * Math.cos(OBL) - Math.tan(b) * Math.sin(OBL), Math.cos(l));
+  const decOf = (l, b) => Math.asin(Math.sin(b) * Math.cos(OBL) + Math.cos(b) * Math.sin(OBL) * Math.sin(l));
+  const sunEq = (d) => {
+    const M = RAD * (357.5291 + 0.98560028 * d), L = M + RAD * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M)) + RAD * 102.9372 + Math.PI;
+    return { ra: raOf(L, 0), dec: decOf(L, 0) };
+  };
+  const moonEq = (d) => {
+    const L = RAD * (218.316 + 13.176396 * d), M = RAD * (134.963 + 13.064993 * d), F = RAD * (93.272 + 13.22935 * d);
+    const l = L + RAD * 6.289 * Math.sin(M), b = RAD * 5.128 * Math.sin(F);
+    return { ra: raOf(l, b), dec: decOf(l, b), dist: 385001 - 20905 * Math.cos(M) };
+  };
+  // azimuth (from north, east 90) and altitude in degrees
+  const horizon = (q, d, lat, lon) => {
+    const H = RAD * (280.16 + 360.9856235 * d) + RAD * lon - q.ra, phi = RAD * lat;
+    const alt = Math.asin(Math.sin(phi) * Math.sin(q.dec) + Math.cos(phi) * Math.cos(q.dec) * Math.cos(H));
+    const az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(q.dec) * Math.cos(phi));
+    return { az: (az / RAD + 540) % 360, alt: alt / RAD };
+  };
+  // lit: fraction of the disc that is lit; angle: where the lit side points on screen (towards the sun; we look south,
+  // so west is to the right), in degrees, 0 = right, 90 = down
+  const moonNow = (t, lat, lon) => {
+    const d = astroDays(t), s = sunEq(d), m = moonEq(d), sd = 149598000;
+    const phi = Math.acos(Math.sin(s.dec) * Math.sin(m.dec) + Math.cos(s.dec) * Math.cos(m.dec) * Math.cos(s.ra - m.ra));
+    const inc = Math.atan2(sd * Math.sin(phi), m.dist - sd * Math.cos(phi));
+    const mp = horizon(m, d, lat, lon), sp = horizon(s, d, lat, lon);
+    const vec = (p) => [Math.sin(p.az * RAD) * Math.cos(p.alt * RAD), Math.cos(p.az * RAD) * Math.cos(p.alt * RAD), Math.sin(p.alt * RAD)];
+    const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
+    const mv = vec(mp), sv = vec(sp), k = dot(mv, sv), tv = sv.map((x, i) => x - k * mv[i]);
+    const a = mp.az * RAD, h = mp.alt * RAD;
+    const right = [Math.cos(a), -Math.sin(a), 0], up = [-Math.sin(a) * Math.sin(h), -Math.cos(a) * Math.sin(h), Math.cos(h)];
+    return { az: mp.az, alt: mp.alt, lit: (1 + Math.cos(inc)) / 2, angle: Math.atan2(-dot(tv, up), dot(tv, right)) / RAD };
+  };
+  // a round moon in Jente's moon colours: the lit part (bright limb towards the sun, a few soft seas on it) over a
+  // faint earthshine disc
+  const moonDisc = (look, lit, angle) => {
+    const R = look.r, B = R + 3, rx = R * Math.abs(1 - 2 * lit), turn = 'rotate(' + angle.toFixed(1) + ')';
+    const part = 'M0 ' + -R + ' A' + R + ' ' + R + ' 0 0 1 0 ' + R + ' A' + rx.toFixed(2) + ' ' + R + ' 0 0 ' + (lit > 0.5 ? 1 : 0) + ' 0 ' + -R + ' Z';
+    const mix = (a, b, f) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(a.substr(i, 2), 16) * (1 - f) + parseInt(b.substr(i, 2), 16) * f).toString(16).padStart(2, '0')).join('');
+    const far = look.c1 === look.c2 ? look.c1 : mix(look.c1, look.c2, 0.25);
+    const seas = [[-0.3, -0.25, 0.27], [0.18, -0.38, 0.17], [0.28, 0.08, 0.24], [-0.08, 0.36, 0.17], [-0.48, 0.16, 0.13]]
+      .map(([x, y, s]) => '<circle cx="' + (x * R).toFixed(1) + '" cy="' + (y * R).toFixed(1) + '" r="' + (s * R).toFixed(1) + '"/>').join('');
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + -B + ' ' + -B + ' ' + 2 * B + ' ' + 2 * B + '" opacity="' + look.op + '">' +
+      '<defs><linearGradient id="m" gradientUnits="userSpaceOnUse" x1="' + R + '" y1="0" x2="' + -R + '" y2="0" gradientTransform="' + turn + '">' +
+      '<stop stop-color="' + look.c1 + '"/><stop offset="1" stop-color="' + far + '"/></linearGradient><clipPath id="l"><path d="' + part + '" transform="' + turn + '"/></clipPath></defs>' +
+      '<circle r="' + R + '" fill="' + look.c2 + '" opacity="0.2"/><path d="' + part + '" transform="' + turn + '" fill="url(#m)"/>' +
+      '<g clip-path="url(#l)" fill="' + (look.c1 === look.c2 ? mix(look.c1, '#000000', 0.45) : look.c2) + '" opacity="0.16">' + seas + '</g></svg>';
+  };
+  let moonSky = null, moonAt = 0;  // null: the moon as Jente drew it (previews, test page)
+  const placeMoon = () => {
+    for (const L of (scene && scene.layers) || []) {
+      if (L.kind !== 'moon' || !L.node || !L.node.parentElement) continue;
+      const el = L.node, m = moonSky, u = el.parentElement.clientWidth / 887;
+      if (!m) {
+        Object.assign(el.style, { transform: '', visibility: '', opacity: '' });
+        if (L.disc && L.drawn) { el.style.backgroundImage = 'url("' + L.url + '")'; L.drawn = null; }
+        continue;
+      }
+      const x = Math.max(-80, Math.min(967, 443.5 + (m.az - 180) * 3.3)), y = 765 - Math.max(-8, Math.min(62, m.alt)) * 4;
+      el.style.transform = 'translate(' + (x - L.c[0]) * u + 'px,' + (y - L.c[1]) * u + 'px)';
+      el.style.visibility = m.alt < -1 ? 'hidden' : '';
+      if (!L.disc) { el.style.opacity = (0.3 + 0.7 * m.lit).toFixed(2); continue; }
+      const key = m.lit.toFixed(3) + ' ' + Math.round(m.angle);
+      if (L.drawn !== key) { L.drawn = key; el.style.backgroundImage = svgUri(moonDisc(L.disc, m.lit, m.angle)); }
+    }
+  };
+  const followMoon = (hass) => {
+    const live = !(test.on && test.tod !== 'echt') && hass.config && hass.config.latitude != null;
+    if (live === !!moonSky && Date.now() - moonAt < 60e3) return;
+    moonAt = Date.now();
+    moonSky = live ? moonNow(Date.now(), hass.config.latitude, hass.config.longitude) : null;
+    placeMoon();
+  };
   const placeScene = (stage) => {
     if (!scene) return;
     const u = stage.clientWidth / 887;
@@ -640,6 +720,7 @@
       }
     }
     placeSun();
+    placeMoon();
   };
   const showScene = (hc, next) => {
     const sr = hc.getRootNode();
@@ -675,7 +756,7 @@
         L.target = inner;
       }
       if (L.anim) el.style.willChange = ['bolt', 'glow', 'dark', 'twinkle'].includes(L.kind) ? 'opacity' : L.kind === 'sparkle' ? 'transform, opacity' : 'transform';
-      if (L.kind === 'sun') el.style.willChange = 'transform';
+      if (L.kind === 'sun' || L.kind === 'moon') el.style.willChange = 'transform';
       if (L.kind === 'leaf' || L.kind === 'sparkle') el.style.transformOrigin = 'center';
       frag.appendChild(el);
     }
@@ -1119,7 +1200,7 @@
     h.toggleAttribute('np-page', onHuis && narrow && atScenes);
     const ha = document.querySelector('home-assistant');
     const states = (ha && ha.hass && ha.hass.states) || {};
-    if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); followSun(states); }
+    if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); followSun(states); followMoon(ha.hass); }
     if (ha && ha.hass && onHuis) checkSnow(ha);
     // weather preview button next to the segmented control (Huis view only)
     h.toggleAttribute('np-huis', onHuis);

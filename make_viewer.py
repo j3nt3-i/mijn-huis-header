@@ -49,6 +49,9 @@ button{cursor:pointer}
   <div class="row"><button id="shoot">🌠 Vallende ster</button><button id="plane">✈️ Vliegtuig</button></div>
   <label>Stand van de zon (oost → west)<input type="range" id="sun" min="0" max="100" value="50" disabled></label>
   <label class="check"><input type="checkbox" id="sunreal" checked> Zon zoals getekend</label>
+  <label>Maan op dit moment (vanuit Nederland)<input type="datetime-local" id="moont"></label>
+  <div class="row"><button id="mh-">− 1 uur</button><button id="mh+">+ 1 uur</button><button id="md+">+ 1 dag</button></div>
+  <label class="check"><input type="checkbox" id="moonreal"> Maan zoals getekend</label>
   <div class="hint">Pijltjestoetsen ← → wisselen van tekening. Vogels en hond verschijnen alleen bij droog weer (zonnig, half bewolkt, bewolkt, winderig, sneeuw zonnig) en niet ’s nachts, zoals op het dashboard. Ze komen maar af en toe langs; met de knoppen start je meteen een ronde. De hond loopt over het gras voor de haag.</div>
   <div class="info" id="info"></div>
 </div>
@@ -129,6 +132,19 @@ __SKY____OV____CRITTERS____WEATHER__
     placeSun();
   };
   $('sun').addEventListener('input', sunTest);
+  // the moon: on the dashboard it is worked out for now and the home location; here for any moment you pick
+  const pad = (n) => String(n).padStart(2, '0');
+  const local = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  const moonTest = () => {
+    const t = Date.parse($('moont').value);
+    moonSky = $('moonreal').checked || isNaN(t) ? null : moonNow(t, 52.09, 5.12);
+    placeMoon();
+  };
+  const moonStep = (h) => { $('moont').value = local(new Date(Date.parse($('moont').value) + h * 3600e3)); moonTest(); };
+  { const d = new Date(); d.setHours(21, 0, 0, 0); $('moont').value = local(d); moonTest(); }
+  $('moont').addEventListener('change', moonTest);
+  $('moonreal').addEventListener('change', moonTest);
+  $('mh-').onclick = () => moonStep(-1); $('mh+').onclick = () => moonStep(1); $('md+').onclick = () => moonStep(24);
   $('sunreal').addEventListener('change', sunTest);
   $('birds').onclick = () => restart(nb.querySelectorAll('b'));
   const SLOW = Number(new URLSearchParams(location.search).get('slow') || 1);

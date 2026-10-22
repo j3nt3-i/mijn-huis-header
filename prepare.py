@@ -1,6 +1,6 @@
 # Prepare Jente's drawings for the layered header. Each file stays one complete, valid SVG (it is also the static
 # fallback), with the moving parts tagged so the bar script can split it on the phone:
-#   data-np="fall|lamp|streak|leaf|bolt|glow|dark|cloud|light|sun|twinkle|sparkle" + parameters  -> separate layers the page moves (cheap, composited)
+#   data-np="fall|lamp|streak|leaf|bolt|glow|dark|cloud|light|sun|moon|twinkle|sparkle" + parameters  -> separate layers the page moves (cheap, composited)
 #   clouds get a slow SMIL sway in 2 steps per second (only the sky layer is redrawn, twice a second)
 #   data-np-break="1" on the last cloud ends the sky layer, so the heavy trees/house/hedge layer never has to be redrawn
 import json, re, os, glob
@@ -114,6 +114,33 @@ def prepare(slug, src):
         if not c: continue
         cx, cy, r = map(float, c.groups())
         s = tag(s, m.group(0), {'data-np': 'sun', 'data-box': f'{cx - r - 2:.1f} {cy - r - 2:.1f} {cx + r + 2:.1f} {cy + r + 2:.1f}', 'data-c': f'{cx} {cy}'})
+    # the moon: Jente's crescent becomes a round moon in her colours, with the real phase and place (the page draws
+    # it); the moonlight around it moves along and is brighter the fuller the moon
+    root = ET.fromstring(s)
+    def byid(i): return next((e for e in root.iter() if e.get('id') == i), None)
+    for disc_id, glow_id in (('Maansikkel', 'Maanlicht'), ('Wassende maan', 'Maangloed')):
+        d, g = byid(disc_id), byid(glow_id)
+        if d is None: continue
+        bx = ebox(d)
+        if not bx: continue
+        r = (bx[3] - bx[1]) / 2
+        gx = ebox(g) if g is not None else None
+        cx, cy = ((gx[0] + gx[2]) / 2, (gx[1] + gx[3]) / 2) if gx else ((bx[0] + bx[2]) / 2, (bx[1] + bx[3]) / 2)
+        fill = d.get('fill') or '#e8e8d0'
+        gm = re.match(r'url\(#([^)]+)\)', fill)
+        if gm:
+            gr = re.search(r'<(?:linear|radial)Gradient id="' + re.escape(gm.group(1)) + r'".*?</(?:linear|radial)Gradient>', s, re.S).group(0)
+            c1, c2 = (re.findall(r'stop-color="(#[0-9A-Fa-f]{6})"', gr) + [None, None])[:2]
+        else:
+            c1 = c2 = fill
+        m = elem(s, disc_id)
+        s = tag(s, m.group(0), {'data-np': 'moon', 'data-moon': 'disc', 'data-c': f'{cx:.1f} {cy:.1f}', 'data-r': f'{r:.1f}',
+                                'data-box': f'{cx - r - 3:.1f} {cy - r - 3:.1f} {cx + r + 3:.1f} {cy + r + 3:.1f}',
+                                'data-c1': c1, 'data-c2': c2 or c1, 'data-op': d.get('opacity') or '1'})
+        if gx:
+            m = elem(s, glow_id)
+            s = tag(s, m.group(0), {'data-np': 'moon', 'data-moon': 'glow', 'data-c': f'{cx:.1f} {cy:.1f}',
+                                    'data-box': f'{gx[0] - 2:.1f} {gx[1] - 2:.1f} {gx[2] + 2:.1f} {gx[3] + 2:.1f}'})
     # stars twinkle: every unbroken run of stars is split into three groups that each dim and brighten at their own
     # pace (one layer per group, so it stays cheap), and Jente's "Fonkelende ster" sparkles each get their own layer
     star = re.compile(r'<circle id="Ster(?:_\d+)?"[^>]*/>')
