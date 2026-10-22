@@ -635,9 +635,24 @@
   window.addEventListener('scroll', () => {
     if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; update(); }); }
   }, { passive: true });
-  window.addEventListener('location-changed', () => setTimeout(update, 50));
-  window.addEventListener('popstate', () => setTimeout(update, 50));
+  // Right after loading (and after switching pages) HA builds a fresh top bar. Check every frame until our styling is
+  // in, so the plain tabs never flash before the segmented control appears; after that the slow interval is enough.
+  let watching = false;
+  const watchForBar = () => {
+    if (watching) return;
+    watching = true;
+    const t0 = performance.now();
+    const tick = () => {
+      const h = ensure();
+      if (h && h.shadowRoot && h.shadowRoot.querySelector('style[data-np-clear]')) { watching = false; update(); return; }
+      if (performance.now() - t0 < 15000) requestAnimationFrame(tick); else watching = false;
+    };
+    tick();
+  };
+  window.addEventListener('location-changed', () => { watchForBar(); setTimeout(update, 50); });
+  window.addEventListener('popstate', () => { watchForBar(); setTimeout(update, 50); });
   window.addEventListener('resize', update);
-  setInterval(update, 1500);
+  setInterval(() => { if (!hui || !hui.isConnected) watchForBar(); update(); }, 1500);
+  watchForBar();
   update();
 })();
