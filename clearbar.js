@@ -17,7 +17,6 @@
     '-webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); box-shadow: none !important; } ' +
     ':host([np-page]) .toolbar { border-bottom-color: transparent !important; } ' +
     // page entrance: hidden until the illustration is ready, then it fades in and the rest slides into place
-    ':host([np-enter]) #view, :host([np-enter]) .toolbar > * { opacity: 0 !important; } ' +
     // first load: the page waits (a few frames) until the greeting card has its final size, so nothing below it moves
     ':host([np-wait]) #view { opacity: 0 !important; }';
   // Tabs as a segmented control: a rounded track with a filled pill behind the active tab, no underline.
@@ -151,10 +150,8 @@
     } catch (e) { /* offline: try again next time */ }
     snowBusy = false;
   };
-  // How the Huis page comes in on a fresh load:
-  //  'cascade' - hidden until the illustration is ready, then it fades in and bar + sections slide in one by one
-  //  'apple'   - bar and content are there at once; only the house appears (fade from the sky + slight zoom)
-  const ENTRANCE = 'apple';
+  // On a fresh load the bar and content are there at once; only the house settles into view (appearHouse)
+  const appearFirst = true;
   const SIG_KEY = 'np-house-sig-16';  // bump when the SVGs are replaced, so browsers fetch the new ones
   let sigs = {};
   try { sigs = JSON.parse(localStorage.getItem(SIG_KEY) || '{}'); } catch (e) { sigs = {}; }
@@ -174,20 +171,15 @@
     setVar('--np-sky', SKY[slug]);
     houseSlug = slug;
     remember('house', url); remember('sky', SKY[slug]);
-    if (ENTRANCE === 'apple') { fallbackLater(url); return; }
-    whenLoaded(url).then(() => { setVar('--np-house', 'url("' + url + '")'); showOverlay(); });
+    fallbackLater(url);
   };
-  // 'apple' entrance: only show the plain drawing if the layered scene has not appeared after 4 s
+  // only show the plain drawing if the layered scene has not appeared after 4 s
   let fallbackTimer = 0;
   const fallbackLater = (url) => {
     clearTimeout(fallbackTimer);
     fallbackTimer = setTimeout(() => { if (!scene) { setVar('--np-house', 'url("' + url + '")'); showOverlay(); } }, 4000);
   };
-  if (last.house && last.sky && ENTRANCE === 'apple') setVar('--np-sky', last.sky);
-  else if (last.house && last.sky) {
-    setVar('--np-sky', last.sky);
-    whenLoaded(last.house).then(() => { if (!houseReady) { setVar('--np-house', 'url("' + last.house + '")'); showOverlay(); } });
-  }
+  if (last.house && last.sky) setVar('--np-sky', last.sky);
   // Window light and the calico cat, drawn over the illustration (pieces are URL-encoded SVG, 2400-wide house coordinates).
   // Downstairs is drawn lit in every illustration, so it only gets darkened when its lamps are off;
   // upstairs gets warm light when its lamps are on, and is only darkened on the clear nights where it is drawn lit.
@@ -264,7 +256,7 @@
         // already built at startup from the device copy
         houseSlug = slug;
         remember('sky', SKY[slug]); setVar('--np-sky', SKY[slug]);
-        signed(ha, slug).then((url) => { remember('house', url); if (ENTRANCE !== 'apple') applyHouse(slug, url); }).catch(() => {});
+        signed(ha, slug).then((url) => remember('house', url)).catch(() => {});
       } else {
         let text = await idbGet(drawingKey(slug));
         let url = null;
@@ -766,7 +758,7 @@
     ready.then(() => {
       if (token !== sceneToken) return;  // a newer drawing was picked meanwhile
       const old = scene;
-      const first = !old && ENTRANCE === 'apple' && !still;
+      const first = !old && appearFirst && !still;
       stage.replaceChildren(frag);
       next.people = {};
       for (const L of next.layers) if (L.kind === 'street' || L.kind === 'grass') next.people[L.kind] = L.node;
@@ -778,7 +770,6 @@
       showOverlay();
       // only the house comes in; the greeting and the content are already on screen and stay put
       if (first) appearHouse(ns, hc.querySelector('np-birds'));
-      requestAnimationFrame(() => requestAnimationFrame(enterPage));
       if (old && old !== next) setTimeout(() => old.urls.forEach((u) => URL.revokeObjectURL(u)), 1000);
     });
   };
@@ -1093,10 +1084,6 @@
       hui.shadowRoot.appendChild(s);
       // first time on the Huis page: keep it hidden until the illustration is ready (at most 3 s), then enter
       if (/\/mijn-huis(\/huis)?\/?$/.test(location.pathname)) waitForHeader(hui);
-      if (ENTRANCE === 'cascade' && /\/mijn-huis(\/huis)?\/?$/.test(location.pathname) && !still) {
-        hui.setAttribute('np-enter', '');
-        setTimeout(enterPage, 3000);
-      }
     }
   };
   // Attach the styling the moment HA creates the top bar (before its first paint), so the plain tabs never show;
@@ -1146,30 +1133,6 @@
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
-  };
-  // The entrance: the view (illustration + greeting) fades in, the top bar items drop into place one by one,
-  // and the sections below the header (scenes, rooms, controls) slide up one after another.
-  const enterPage = () => {
-    const h = hui;
-    if (!h || !h.hasAttribute('np-enter')) return;
-    const sr = h.shadowRoot;
-    const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
-    const view = sr.querySelector('#view');
-    const sections = [];
-    const walk = (r) => { for (const n of r.querySelectorAll('*')) { if (n.tagName === 'HUI-SECTION') sections.push(n); else if (n.shadowRoot) walk(n.shadowRoot); } };
-    if (view) walk(view);
-    const vh = window.innerHeight;
-    const bar = [...sr.querySelectorAll('.toolbar > *')];
-    if (view) view.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-out', fill: 'backwards' });
-    bar.forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }],
-      { duration: 450, delay: 250 + i * 70, easing: ease, fill: 'backwards' }));
-    let k = 0;
-    sections.slice(1).forEach((el) => {
-      const onScreen = el.getBoundingClientRect().top < vh + 100;
-      el.animate([{ opacity: 0, transform: 'translateY(36px)' }, { opacity: 1, transform: 'none' }],
-        { duration: 600, delay: onScreen ? 300 + (k++) * 80 : 300, easing: ease, fill: 'backwards' });
-    });
-    h.removeAttribute('np-enter');
   };
   // the scene carousel: the horizontally scrolling grid right below the illustration
   let carousel = null;

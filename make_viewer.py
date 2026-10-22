@@ -40,7 +40,6 @@ button{cursor:pointer}
   <label>Weer<select id="wx"></select></label>
   <label>Dagdeel<select id="tod"><option value="dawn">Ochtendschemer</option><option value="day">Dag</option><option value="dusk">Avondschemer</option><option value="night">Nacht</option></select></label>
   <div class="row"><button id="prev">← Vorige</button><button id="next">Volgende →</button></div>
-  <label>Laadanimatie<select id="style"><option value="cascade">Huidig (alles schuift in)</option><option value="apple">Apple-stijl (alleen het huis verschijnt)</option></select></label>
   <button id="enter">▶ Laadanimatie afspelen</button>
   <label class="check"><input type="checkbox" id="light"> Lichte modus</label>
   <h2>Huis</h2>
@@ -163,24 +162,8 @@ __SKY____OV____CRITTERS____WEATHER__
   const SLOW = Number(new URLSearchParams(location.search).get('slow') || 1);
   // the house and the cards live in a shadow root: include its animations too
   const slowDown = () => { if (SLOW !== 1) for (const a of [...document.getAnimations(), ...sr.getAnimations()]) if (a.effect && a.effect.getTiming().iterations !== Infinity) a.playbackRate = 1 / SLOW; };
+  // the entrance: the bar and content are there at once; the house appears behind them (fade from the sky + slight zoom)
   const playEntrance = async () => {
-    if ($('style').value === 'apple') return playApple();
-    const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
-    const view = host, bar = [...$('bar').children], sections = [...sr.querySelectorAll('.scenes, .rest > i')];
-    for (const el of [view, ...bar, ...sections]) el.style.opacity = '0';
-    $('scroller').scrollTop = 0;
-    await render();                                   // rebuild the layers, like a fresh page load
-    await new Promise((r) => setTimeout(r, 450 * SLOW));     // the dashboard waits until every layer is decoded
-    for (const el of [view, ...bar, ...sections]) el.style.opacity = '';
-    view.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 650, easing: 'ease-out', fill: 'backwards' });
-    bar.forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }],
-      { duration: 450, delay: 250 + i * 70, easing: ease, fill: 'backwards' }));
-    sections.forEach((el, k) => el.animate([{ opacity: 0, transform: 'translateY(36px)' }, { opacity: 1, transform: 'none' }],
-      { duration: 600, delay: 300 + k * 80, easing: ease, fill: 'backwards' }));
-    slowDown();
-  };
-  // Apple-style: the bar and content are there at once; the house appears behind them (fade from the sky + slight zoom)
-  const playApple = async () => {
     $('scroller').scrollTop = 0;
     const old = sr.querySelector('np-scene .pin');
     if (old) old.style.opacity = '0';
@@ -192,12 +175,6 @@ __SKY____OV____CRITTERS____WEATHER__
     appearHouse(ns, nb);
     slowDown();
   };
-  $('style').addEventListener('change', () => { try { localStorage.setItem('np-entrance', ENTRANCE); } catch (e) {} playEntrance(); });
-  try { const s = localStorage.getItem('np-entrance'); if (s) $('style').value = s; } catch (e) {}
-  // ?style=cascade|apple picks the entrance, ?bare hides the controls (used by the side-by-side comparison)
-  const qs = new URLSearchParams(location.search);
-  if (qs.get('style')) $('style').value = qs.get('style');
-  if (qs.has('bare')) { document.querySelector('.panel').style.display = 'none'; document.body.style.padding = '12px'; }
   $('enter').onclick = playEntrance;
   $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
   addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); });
@@ -209,7 +186,7 @@ __SKY____OV____CRITTERS____WEATHER__
 scene = scene.replace('@media (max-width: 870px) { ha-card[np-layered]', '@media (min-width: 0px) { ha-card[np-layered]')  # the phone frame is narrow, the window is not
 # helpers the scene code shares with the dashboard script's house logic
 scene = ("  const whenLoaded = (url) => new Promise((ok) => { const i = new Image(); i.onload = i.onerror = () => ok(); i.src = url; });\n"
-         "  const showOverlay = () => {};\n  const enterPage = () => {};\n  let houseSlug = null;\n  let ENTRANCE = 'cascade';\n  const last = {};\n  const remember = () => {};\n") + scene
+         "  const showOverlay = () => {};\n  let houseSlug = null;\n  const appearFirst = false;  // the test page plays the entrance itself\n  const last = {};\n  const remember = () => {};\n") + scene
 html = (html.replace('__SKY__', sky).replace('__OV__', ov).replace('__CRITTERS__', critters).replace('__WEATHER__', weather + scene))
 open('viewer.html', 'w').write(html)
 print('viewer.html', len(html) // 1024, 'KB')
