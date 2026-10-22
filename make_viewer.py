@@ -78,7 +78,7 @@ __SKY____OV____CRITTERS____WEATHER__
     h2{margin:0;font-size:28px;text-shadow:0 1px 10px #0003}p{margin:6px 0 0;font-size:14px;color:#ffffffe0;max-width:72%}
     .scenes{display:flex;gap:10px;padding:0 20px 20px;position:relative;overflow-x:auto;scrollbar-width:none}.scenes::-webkit-scrollbar{display:none}.sc{position:relative;display:flex;box-sizing:border-box;cursor:pointer;background:var(--card,#2b2b2b);color:var(--txt,#f1f1f1);-webkit-tap-highlight-color:transparent;transition:transform 160ms cubic-bezier(.2,.8,.2,1)}.sc:active{transform:scale(.95)}
     .sc .ic{display:grid;place-items:center;border-radius:50%}.sc .ic svg{fill:currentColor}
-    .scenes.new .sc{flex:0 0 128px;height:136px;border-radius:28px;padding:14px 14px 16px;flex-direction:column}
+    .scenes.new .sc{flex:0 0 128px;height:156px;border-radius:28px;padding:14px 14px 16px;flex-direction:column}
     .scenes.new .sc .ic{width:44px;height:44px;background:color-mix(in srgb,rgb(var(--c)) 45%,#fff);color:#1d1d1f}.scenes.new .sc .ic svg{width:22px;height:22px}
     .scenes.new .sc b{margin-top:auto;font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
     .scenes.new .sc small{margin-top:3px;font-size:13px;color:var(--sub,#a0a0a0)}
