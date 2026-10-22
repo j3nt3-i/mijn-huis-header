@@ -210,32 +210,76 @@
     if (last.ov !== v) remember('ov', v);
     if (houseReady) setVar('--np-ov', v);
   };
+  // Drawings are kept on the device in IndexedDB (Cache Storage needs https; the app often uses http on the LAN),
+  // keyed by SIG_KEY so a new upload is fetched again. Then a reopen needs no network at all.
+  const idb = () => new Promise((ok, no) => {
+    const r = indexedDB.open('np-house', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('d');
+    r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
+  });
+  const idbGet = async (k) => {
+    try { const db = await idb(); return await new Promise((ok) => { const q = db.transaction('d').objectStore('d').get(k); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); }
+    catch (e) { return null; }
+  };
+  const idbPut = async (k, v) => {
+    try {
+      const db = await idb();
+      const st = db.transaction('d', 'readwrite').objectStore('d');
+      st.put(v, k);
+      // drop drawings from older uploads
+      const keys = st.getAllKeys();
+      keys.onsuccess = () => keys.result.filter((x) => !String(x).startsWith(SIG_KEY + ':')).forEach((x) => st.delete(x));
+    } catch (e) { /* no storage: the network is used every time */ }
+  };
+  const drawingKey = (slug) => SIG_KEY + ':' + slug;
+  const signed = async (ha, slug) => {
+    const path = '/media/local/huis-' + slug + '.svg';
+    let s = sigs[slug];
+    if (!s || s.exp < Date.now() + 3600e3) {
+      const r = await ha.hass.callWS({ type: 'auth/sign_path', path, expires: 7 * 86400 });
+      s = { url: r.path, exp: Date.now() + 7 * 86400e3 };
+      sigs[slug] = s;
+      try { localStorage.setItem(SIG_KEY, JSON.stringify(sigs)); } catch (e) { /* private mode */ }
+    }
+    return s.url;
+  };
+  // put built layers in, or keep them until the header card exists (right after a refresh)
+  const placeBuilt = (built) => {
+    if (!headerCard || !headerCard.isConnected) headerCard = findHeaderCard(hui ? hui.shadowRoot : document);
+    const hc = headerCard && headerCard.shadowRoot && headerCard.shadowRoot.querySelector('ha-card');
+    if (hc) showScene(hc, built); else pendingScene = built;
+  };
+  // Early start: right when the script loads, build the last shown drawing from the device copy, while Home Assistant
+  // itself is still starting up. If the drawing turns out to be the same once the states are in, nothing is redone.
+  let earlySlug = null;
+  if (last.slug) idbGet(drawingKey(last.slug)).then((text) => {
+    if (!text || houseSlug || scene || pendingScene) return;
+    try { earlySlug = last.slug; placeBuilt(buildScene(text, last.slug)); } catch (e) { earlySlug = null; }
+  });
   const setHouse = async (ha, slug) => {
     if (slug === houseSlug || slug === pending) return;
     pending = slug;
     try {
-      const path = '/media/local/huis-' + slug + '.svg';
-      let s = sigs[slug];
-      if (!s || s.exp < Date.now() + 3600e3) {
-        const r = await ha.hass.callWS({ type: 'auth/sign_path', path, expires: 7 * 86400 });
-        s = { url: r.path, exp: Date.now() + 7 * 86400e3 };
-        sigs[slug] = s;
-        try { localStorage.setItem(SIG_KEY, JSON.stringify(sigs)); } catch (e) { /* private mode */ }
-      }
-      // download it first so the swap does not flash an empty sky. Only the file is fetched (into the HTTP cache):
-      // a hidden Image would keep a decoded, animated copy of every drawing around and could stop the real one from animating.
-      let text = null;
-      try { text = await fetch(s.url, { cache: 'force-cache' }).then((r) => r.text()); } catch (e) { /* the background loads it anyway */ }
-      if (pending === slug) {
-        applyHouse(slug, s.url);
-        // split it into layers; if anything goes wrong the plain (static) drawing stays visible
-        try {
-          if (!headerCard || !headerCard.isConnected) headerCard = findHeaderCard(hui ? hui.shadowRoot : document);
-          const hc = headerCard && headerCard.shadowRoot && headerCard.shadowRoot.querySelector('ha-card');
-          // build the layers now; if the dashboard has not drawn the header card yet (right after a refresh),
-          // keep them and let the update loop put them in as soon as the card is there
-          if (text) { const built = buildScene(text, slug); if (hc) showScene(hc, built); else pendingScene = built; }
-        } catch (e) { console.warn('np-scene', e); }
+      if (slug === earlySlug && (scene || pendingScene)) {
+        // already built at startup from the device copy
+        houseSlug = slug;
+        remember('sky', SKY[slug]); setVar('--np-sky', SKY[slug]);
+        signed(ha, slug).then((url) => { remember('house', url); if (ENTRANCE !== 'apple') applyHouse(slug, url); }).catch(() => {});
+      } else {
+        let text = await idbGet(drawingKey(slug));
+        let url = null;
+        if (!text) {
+          url = await signed(ha, slug);
+          try { text = await fetch(url, { cache: 'force-cache' }).then((r) => (r.ok ? r.text() : null)); } catch (e) { text = null; }
+          if (text) idbPut(drawingKey(slug), text);
+        }
+        if (pending === slug) {
+          if (!url) url = await signed(ha, slug).catch(() => null);
+          if (url) applyHouse(slug, url); else houseSlug = slug;
+          remember('slug', slug);
+          // split it into layers; if anything goes wrong the plain (static) drawing is the fallback
+          try { if (text) placeBuilt(buildScene(text, slug)); } catch (e) { console.warn('np-scene', e); }
+        }
       }
     } catch (e) { /* try again on the next tick */ }
     if (pending === slug) pending = null;
@@ -507,9 +551,11 @@
     layers.splice(at, 0, { kind: 'ov' });
     return { slug, urls, layers };
   };
-  let lamps = { down: true, up: true };
+  // remembered, so an early-built scene starts with the right glow before the lamp states are in
+  let lamps = last.lamps || { down: true, up: true };
   const setLights = (down, up) => {
     lamps = { down, up };
+    if (!last.lamps || last.lamps.down !== down || last.lamps.up !== up) remember('lamps', lamps);
     if (scene) for (const L of scene.layers) if (L.urlOff && L.node) L.node.style.backgroundImage = 'url("' + ((L.room === 'up' ? up : down) ? L.url : L.urlOff) + '")';
   };
   // 'apple' entrance: the house settles into view (zoom 110% -> 100%, drops a little, blur -> sharp), like the wallpaper
@@ -664,6 +710,8 @@
         ready = settled >= 4;
       }
       if (done) return;
+      // layers built early from the device copy go in as soon as the greeting card exists (no need to wait for HA's states)
+      if (hc && pendingScene && isHeaderCard(hc)) { const p = pendingScene; pendingScene = null; headerCard = card; try { showScene(hc, p); } catch (e) { /* fallback */ } }
       if (ready || performance.now() - t0 > 2500) {
         if (hc) headerCard = card;
         reveal();

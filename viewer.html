@@ -100,6 +100,8 @@ button{cursor:pointer}
   const enterPage = () => {};
   let houseSlug = null;
   let ENTRANCE = 'cascade';
+  const last = {};
+  const remember = () => {};
   // ---- Layered scene ---------------------------------------------------------------------------------------
   // The drawing is split on the phone into stacked layers: the sky with its slow clouds, the static trees/house/hedge
   // (drawn once), and every moving part (rain, snow, wind, leaves, lightning) as its own small image that the page
@@ -255,9 +257,11 @@ button{cursor:pointer}
     layers.splice(at, 0, { kind: 'ov' });
     return { slug, urls, layers };
   };
-  let lamps = { down: true, up: true };
+  // remembered, so an early-built scene starts with the right glow before the lamp states are in
+  let lamps = last.lamps || { down: true, up: true };
   const setLights = (down, up) => {
     lamps = { down, up };
+    if (!last.lamps || last.lamps.down !== down || last.lamps.up !== up) remember('lamps', lamps);
     if (scene) for (const L of scene.layers) if (L.urlOff && L.node) L.node.style.backgroundImage = 'url("' + ((L.room === 'up' ? up : down) ? L.url : L.urlOff) + '")';
   };
   // 'apple' entrance: the house settles into view (zoom 110% -> 100%, drops a little, blur -> sharp), like the wallpaper
