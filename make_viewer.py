@@ -49,6 +49,7 @@ button{cursor:pointer}
   <label class="check"><input type="checkbox" id="down" checked> Lampen beneden aan</label>
   <label class="check"><input type="checkbox" id="up" checked> Lampen boven aan</label>
   <label class="check"><input type="checkbox" id="porch" checked> Voordeurlamp aan</label>
+  <label class="check"><input type="checkbox" id="nacho" checked> Nacho in het raam</label>
   <label class="check"><input type="checkbox" id="music"> Muziek beneden (woonkamer/keuken)</label>
   <label class="check"><input type="checkbox" id="musicup"> Muziek boven (Hall display / first floor)</label>
   <h2>Langs komen</h2>
@@ -164,7 +165,7 @@ __SKY____OV____CRITTERS____WEATHER__
     const down = $('down').checked, up = $('up').checked;
     document.documentElement.style.setProperty('--np-sky', SKY[slug] || '#2c3245');
     document.documentElement.style.setProperty('--np-ov-l', 'url("data:image/svg+xml;charset=utf-8,' + OV.head + (up ? OV.upOn : (LIT_UP.includes(slug) ? OV.upOff : '')) +
-      (down ? '' : (tod === 'day' ? OV.downDay : OV.downNight)) + (up || tod === 'day' ? OV.cat : OV.sil) + ($('porch').checked ? PORCH(tod) : '') + OV.tail + '")');
+      (down ? '' : (tod === 'day' ? OV.downDay : OV.downNight)) + ($('nacho').checked ? (up || tod === 'day' ? OV.cat : OV.sil) : '') + ($('porch').checked ? PORCH(tod) : '') + OV.tail + '")');
     nb.toggleAttribute('show', BIRD_WEATHER.includes(wx) && tod !== 'night');
     nb.toggleAttribute('dim', tod === 'dawn' || tod === 'dusk');
     nb.toggleAttribute('music-down', $('music').checked);
@@ -195,7 +196,7 @@ __SKY____OV____CRITTERS____WEATHER__
     i = (i + d + all.length) % all.length;
     $('wx').value = all[i][0]; $('tod').value = all[i][1]; render();
   };
-  for (const id of ['wx', 'tod', 'wind', 'winddir', 'rainamt', 'down', 'up', 'porch', 'music', 'musicup']) $(id).addEventListener('change', render);
+  for (const id of ['wx', 'tod', 'wind', 'winddir', 'rainamt', 'down', 'up', 'porch', 'nacho', 'music', 'musicup']) $(id).addEventListener('change', render);
   $('light').addEventListener('change', () => {
     const l = $('light').checked;
     document.documentElement.style.setProperty('--primary-background-color', l ? '#f2f2f2' : '#1c1c1c');

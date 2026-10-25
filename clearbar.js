@@ -217,6 +217,17 @@
       "<path d='M302 1133H380V1266H302Z' fill='url(#pf)'/><ellipse cx='342' cy='1130' rx='46' ry='64' fill='url(#pg)' clip-path='url(#pc)'/>" +
       "<ellipse cx='342' cy='1130' rx='5.5' ry='1.8' fill='#fff6dc' opacity='" + (0.6 + 0.4 * k) + "'/></g>");
   };
+  // Nacho, the calico cat, is not always in the window: the day is cut into 20-minute slots and each slot decides
+  // whether she sits there (the same on every device and steady across reloads) - about half the time by day, a third
+  // at night. When she has just arrived she fades in.
+  const NACHO_SLOT = 20 * 60e3;
+  const nachoIn = (slot, tod) => { const h = Math.sin(slot * 12.9898) * 43758.5453; return h - Math.floor(h) < (tod === 'night' ? 0.33 : 0.5); };
+  const nacho = (tod, part, t = Date.now()) => {
+    const slot = Math.floor(t / NACHO_SLOT);
+    if (!nachoIn(slot, tod)) return '';
+    const fresh = t - slot * NACHO_SLOT < 60e3 && !nachoIn(slot - 1, tod);
+    return fresh ? encodeURIComponent("<g opacity='0'><animate attributeName='opacity' from='0' to='1' dur='1.5s' fill='freeze'/>") + part + encodeURIComponent('</g>') : part;
+  };
   const DOWN_AREAS = ['living_room', 'kitchen', 'hall'];
   const UP_AREAS = ['bedroom', 'bathroom', 'jente_s_room', 'donnas_room'];
   const LIT_UP = ['sunny-night', 'partlycloudy-night', 'windy-night', 'snowsun-night'];
@@ -231,7 +242,7 @@
     if (down !== lamps.down || up !== lamps.up) setLights(down, up);
     const door = hass.states['light.front_door_light'];
     const svg = OV.head + (up ? OV.upOn : (LIT_UP.includes(slug) ? OV.upOff : '')) +
-      (down ? '' : (tod === 'day' ? OV.downDay : OV.downNight)) + (up || tod === 'day' ? OV.cat : OV.sil) +
+      (down ? '' : (tod === 'day' ? OV.downDay : OV.downNight)) + nacho(tod, up || tod === 'day' ? OV.cat : OV.sil) +
       (door && door.state === 'on' ? PORCH(tod) : '') + OV.tail;
     const v = 'url("data:image/svg+xml;charset=utf-8,' + svg + '")';
     if (last.ov !== v) remember('ov', v);
