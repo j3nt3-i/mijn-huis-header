@@ -18,7 +18,15 @@
     ':host([np-page]) .toolbar { border-bottom-color: transparent !important; } ' +
     // page entrance: hidden until the illustration is ready, then it fades in and the rest slides into place
     // first load: the page waits (a few frames) until the greeting card has its final size, so nothing below it moves
-    ':host([np-wait]) #view { opacity: 0 !important; }';
+    ':host([np-wait]) #view { opacity: 0 !important; } ' +
+    // tablet and desktop: an ambient glow in the sky colour of the drawing, strongest by the panel at the top left and
+    // fading into the page colour; the bar lets it through (frosted, so cards scrolling under it stay calm)
+    ':host([np-wide])::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(120% 90% at 15% 20%, ' +
+    'color-mix(in srgb, var(--np-sky, #2c3245) 55%, var(--primary-background-color)) 0%, color-mix(in srgb, var(--np-sky, #2c3245) 22%, var(--primary-background-color)) 60%, ' +
+    'color-mix(in srgb, var(--np-sky, #2c3245) 12%, var(--primary-background-color)) 100%); } ' +
+    ':host([np-wide]) .header { background: color-mix(in srgb, var(--primary-background-color) 35%, transparent) !important; ' +
+    '-webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: none !important; } ' +
+    ':host([np-wide]) .toolbar { border-bottom-color: transparent !important; }';
   // Tabs as a segmented control: a rounded track with a filled pill behind the active tab, no underline.
   const segCss = ' /*np-seg*/ ' +
     'ha-tab-group::part(tabs) { transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1); gap: 2px; padding: 3px; border-radius: 999px; background: rgba(var(--rgb-primary-text-color), 0.06); margin: 8px auto 0 auto; width: fit-content; height: 40px !important; box-sizing: border-box; align-items: center !important; border: none !important; } ' +
@@ -373,7 +381,8 @@
     '55% { transform: translate(2.5vw, -7vw) scale(1) rotate(8deg); } 100% { opacity: 0; transform: translate(-1vw, -14vw) scale(0.9) rotate(-6deg); } } ' +
     '@keyframes np-note-b { 0% { opacity: 0; transform: translate(0, 0) scale(0.6) rotate(8deg); } 15% { opacity: 1; } ' +
     '55% { transform: translate(-2.5vw, -7vw) scale(1) rotate(-8deg); } 100% { opacity: 0; transform: translate(1.5vw, -14vw) scale(0.9) rotate(6deg); } } ' +
-    '@media (min-width: 871px) { np-birds s { display: none !important; } } ' +
+    // tablet and desktop: the panel stays put, so the birds do not follow the scroll either
+    '@media (min-width: 871px) { np-birds s { display: none !important; } np-birds { animation: none; } } ' +
     'np-birds b { position: absolute; left: 0; will-change: transform; animation: linear infinite; } ' +
     'np-birds b i { position: absolute; display: block; background: ' + BIRD + ' center / contain no-repeat; animation: np-bob ease-in-out infinite alternate; } ' +
     // each bird (or the little flock) crosses in a few seconds and then waits off-screen for the rest of its cycle
@@ -1374,13 +1383,16 @@
     const wrap = sv.shadowRoot.querySelector('.wrapper');
     if (!on || !wrap) return;
     const bar = h.shadowRoot.querySelector('.header'), barH = bar ? bar.getBoundingClientRect().height : 56, gap = 32;
-    const room = sv.clientWidth - 2 * gap;
-    const pw = Math.max(200, Math.min((window.innerHeight - barH - 48) * 887 / 1662, room - gap - 300));
+    // the panel fills the height there is; its width follows the drawing, but stays between 300px and what leaves the
+    // rooms 300px. When the two do not match exactly, the drawing stays anchored at the bottom (house and grass always
+    // in view) and a little sky is cut or added at the top.
+    const room = sv.clientWidth - 2 * gap, ph = Math.max(300, window.innerHeight - barH - 48);
+    const pw = Math.max(300, Math.min(ph * 887 / 1662, room - gap - 300));
     const cols = Math.max(1, Math.min(3, Math.floor((room - pw) / (300 + gap))));
     const set = (k, v) => { if (sv.style.getPropertyValue(k) !== v) sv.style.setProperty(k, v); };
     set('--np-cols', String(cols));
     set('--np-pw', Math.round(pw) + 'px');
-    set('--np-panel-h', Math.round(pw * 1662 / 887) + 'px');
+    set('--np-panel-h', Math.round(ph) + 'px');
     const left = Math.round(wrap.getBoundingClientRect().left + gap) + 'px';
     if (sv.style.getPropertyValue('--np-left') !== left) sv.style.setProperty('--np-left', left);
   };
@@ -1400,6 +1412,7 @@
     h.toggleAttribute('np-clear', onHuis && narrow && !atScenes);
     h.toggleAttribute('np-page', onHuis && narrow && atScenes);
     setPanel(h, onHuis && !narrow);
+    h.toggleAttribute('np-wide', onHuis && !narrow);
     const ha = document.querySelector('home-assistant');
     const states = (ha && ha.hass && ha.hass.states) || {};
     if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); followSun(states); followMoon(ha.hass); followWind(states); }
