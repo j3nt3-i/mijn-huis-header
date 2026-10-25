@@ -463,7 +463,10 @@
     'np-scene[np-ext] .stage { bottom: var(--np-run); } ' +
     'np-scene[np-ext] .pin { background: linear-gradient(to bottom, var(--np-sky, #2c3245) calc(100% - var(--np-run) - 1px), var(--np-ground) calc(100% - var(--np-run) - 1px)); } ' +
     // the old single-image layer goes away completely (also its sky colour, which would shine through the bottom fade)
-    'ha-card[np-layered]::before { background: none !important; }';
+    'ha-card[np-layered]::before { background: none !important; } ' +
+    // tablet and desktop: the card is a panel with the whole drawing, so the scene simply fills it
+    '@media (min-width: 871px) { np-scene, np-scene[np-ext] { top: 0; height: 100%; -webkit-mask: none; mask: none; } np-scene .pin { animation: none; } ' +
+    'np-scene .pin::after { display: none; } np-scene .stage, np-scene[np-ext] .stage { bottom: 0; } }';
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const openTag = (el, skip) => '<' + el.localName + [...el.attributes].filter((a) => !skip.includes(a.name) && !a.name.startsWith('data-np'))
     .map((a) => ' ' + a.name + '="' + esc(a.value) + '"').join('') + '>';
@@ -1334,6 +1337,50 @@
     }
     return null;
   };
+  // Tablet and desktop: on the Huis view the first section (the illustration) becomes a panel on the left that stays put,
+  // as tall as the window (narrower when the window is tight, so the rooms keep at least 300px), and the other sections
+  // fill the columns that fit next to it (HA's grid is told the new count). The panel size (--np-pw, --np-panel-h) is
+  // worked out below; the header card takes its height from --np-panel-h.
+  const PANEL_CSS = '@media (min-width: 871px) { ' +
+    ':host([np-panel]) .wrapper { --column-count: var(--np-cols) !important; --content-column-count: var(--np-cols) !important; ' +
+    'max-width: calc(var(--np-pw) + var(--column-gap) + var(--np-cols) * var(--column-max-width) + (var(--np-cols) - 1) * var(--column-gap)) !important; } ' +
+    ':host([np-panel]) .container { padding-left: calc(var(--np-pw) + var(--column-gap)); } ' +
+    ':host([np-panel]) .content > .section:first-child { position: fixed; z-index: 1; top: calc(var(--header-height, 56px) + var(--row-gap)); left: var(--np-left, 0px); width: var(--np-pw); } ' +
+    // sections wider than one column (HA may have narrowed their span to its own count) take the whole right side
+    ':host([np-panel]) .content > .section:not(:first-child):not([style*="column-span:1;"]):not([style*="column-span: 1;"]) { grid-column: 1 / -1 !important; } }';
+  let panelView = null;
+  const findSectionsView = (root) => {
+    for (const n of root.querySelectorAll('*')) {
+      if (n.tagName === 'HUI-SECTIONS-VIEW') return n;
+      if (n.shadowRoot) { const f = findSectionsView(n.shadowRoot); if (f) return f; }
+    }
+    return null;
+  };
+  const setPanel = (h, on) => {
+    if (!panelView || !panelView.isConnected) panelView = findSectionsView(h.shadowRoot.querySelector('#view') || h.shadowRoot);
+    const sv = panelView;
+    if (!sv || !sv.shadowRoot) return;
+    if (!sv.shadowRoot.querySelector('style[data-np-panel]')) {
+      const st = document.createElement('style');
+      st.setAttribute('data-np-panel', '');
+      st.textContent = PANEL_CSS;
+      sv.shadowRoot.appendChild(st);
+      new ResizeObserver(() => update()).observe(sv);
+    }
+    sv.toggleAttribute('np-panel', on);
+    const wrap = sv.shadowRoot.querySelector('.wrapper');
+    if (!on || !wrap) return;
+    const bar = h.shadowRoot.querySelector('.header'), barH = bar ? bar.getBoundingClientRect().height : 56, gap = 32;
+    const room = sv.clientWidth - 2 * gap;
+    const pw = Math.max(200, Math.min((window.innerHeight - barH - 48) * 887 / 1662, room - gap - 300));
+    const cols = Math.max(1, Math.min(3, Math.floor((room - pw) / (300 + gap))));
+    const set = (k, v) => { if (sv.style.getPropertyValue(k) !== v) sv.style.setProperty(k, v); };
+    set('--np-cols', String(cols));
+    set('--np-pw', Math.round(pw) + 'px');
+    set('--np-panel-h', Math.round(pw * 1662 / 887) + 'px');
+    const left = Math.round(wrap.getBoundingClientRect().left + gap) + 'px';
+    if (sv.style.getPropertyValue('--np-left') !== left) sv.style.setProperty('--np-left', left);
+  };
   const update = () => {
     const h = ensure();
     if (!h) return;
@@ -1349,6 +1396,7 @@
     }
     h.toggleAttribute('np-clear', onHuis && narrow && !atScenes);
     h.toggleAttribute('np-page', onHuis && narrow && atScenes);
+    setPanel(h, onHuis && !narrow);
     const ha = document.querySelector('home-assistant');
     const states = (ha && ha.hass && ha.hass.states) || {};
     if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); followSun(states); followMoon(ha.hass); followWind(states); }

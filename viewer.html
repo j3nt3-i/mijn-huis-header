@@ -22,11 +22,14 @@ button{cursor:pointer}
 .hint{font-size:12px;color:#888;line-height:1.5}
 .panel h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8a8a8a;margin:10px 0 -4px}
 .panel [hidden]{display:none!important}
+.phone.wide{border-radius:18px}.phone.wide .bar{background:var(--primary-background-color);color:#e3e3e3;padding:0 12px}
+.phone.wide .bar .seg{background:rgba(255,255,255,.07);-webkit-backdrop-filter:none;backdrop-filter:none}.phone.wide .bar .seg span.on{background:rgba(255,255,255,.14)}
 </style>
 <div class="phone"><div class="bar" id="bar"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></span><span class="seg"><span class="on"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg></span><span><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a2 2 0 0 1 2 2v5.3a3.5 3.5 0 1 1-4 0V8a2 2 0 0 1 2-2z"/></svg></span></span><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg></span></div><div class="scroller" id="scroller"><div id="host"></div></div></div>
 <div class="panel">
   <h1>Header testen</h1>
   <h2>Tekening</h2>
+  <label>Weergave<select id="device"><option value="phone">Telefoon</option><option value="tablet">Tablet (1180 × 820)</option><option value="desktop">Desktop (1440 × 900)</option></select></label>
   <label>Weer<select id="wx"></select></label>
   <label>Dagdeel<select id="tod"><option value="dawn">Ochtendschemer</option><option value="day">Dag</option><option value="dusk">Avondschemer</option><option value="night">Nacht</option></select></label>
   <label>Wind<select id="wind"><option value="0">Geen</option><option value="1">Winderig (vanaf 29 km/u)</option><option value="2">Storm (vanaf 50 km/u)</option></select></label>
@@ -967,6 +970,17 @@ button{cursor:pointer}
     ha-card{display:block;position:relative;aspect-ratio:2400/3690;--header-height:56px;margin-top:32px;margin-bottom:calc(-81.76px - 4px);padding:44px 20px 0;box-sizing:border-box;color:#fff;font-family:inherit}
     @media (min-width:0){ha-card{margin-bottom:calc(-81.76px - 10px)}}  /* = the dashboard's calc(-20.44vw - 40px) plus the 30px its sections add; cards overlap the picture 92px at 400px wide */
     ha-card::before{content:'';position:absolute;z-index:-1;top:-56px;left:0;width:100%;height:calc(100% + 56px);background:var(--np-house,none) center bottom/100% auto no-repeat var(--np-sky,#2c3245)}
+    /* tablet and desktop: the whole drawing as a panel on the left that stays put while the rooms scroll on the right */
+    :host(.wide){display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:28px;padding:76px 28px 28px;align-items:start}
+    :host(.wide) ha-card{grid-column:1;grid-row:1/span 20;position:sticky;top:76px;height:calc(var(--frame-h) - 100px);width:auto;aspect-ratio:887/1662;margin:0!important;padding:30px 24px 0;border-radius:28px;overflow:hidden;box-shadow:0 10px 30px #0004}
+    :host(.wide) ha-card::before{display:none}
+    :host(.wide) np-scene{top:0!important;height:100%!important;-webkit-mask:none!important;mask:none!important}
+    :host(.wide) np-scene .pin{animation:none!important}:host(.wide) np-scene .pin::after{display:none}
+    :host(.wide) np-scene .stage{bottom:0!important}
+    :host(.wide) h2{font-size:26px}:host(.wide) p{max-width:85%}
+    :host(.wide) .scenes{grid-column:2;flex-wrap:wrap;overflow:visible;padding:0 0 12px}:host(.wide) .scenes::after{display:none}
+    :host(.wide) .room,:host(.wide) .rest{grid-column:2;padding-left:0;padding-right:0}
+    :host(.wide) .lights{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
     @keyframes np-house-stay{from{transform:translateY(0)}to{transform:translateY(1000px)}}
     h2{margin:0;font-size:28px;text-shadow:0 1px 10px #0003}p{margin:6px 0 0;font-size:14px;color:#ffffffe0;max-width:72%}
     .scenes{display:flex;gap:10px;padding:0 20px 20px;position:relative;overflow-x:auto;scrollbar-width:none}.scenes::-webkit-scrollbar{display:none}.sc{position:relative;display:flex;box-sizing:border-box;cursor:pointer;background:var(--card,#2b2b2b);color:var(--txt,#f1f1f1);-webkit-tap-highlight-color:transparent;transition:transform 160ms cubic-bezier(.2,.8,.2,1)}.sc:active{transform:scale(.95)}
@@ -1022,6 +1036,15 @@ button{cursor:pointer}
     });
   };
   drawCards();
+  // phone, tablet or desktop: the frame takes that size (shrunk to fit this window) and the dashboard mock its layout
+  const DEVICES = { phone: [400, 860], tablet: [1180, 820], desktop: [1440, 900] };
+  const setDevice = () => {
+    const [w, h] = DEVICES[$('device').value], wide = w > 870, ph = document.querySelector('.phone');
+    Object.assign(ph.style, { width: w + 'px', height: h + 'px', zoom: wide ? String(Math.min(1, (innerWidth - 420) / w)) : '' });
+    ph.classList.toggle('wide', wide); host.classList.toggle('wide', wide);
+    host.style.setProperty('--frame-h', h + 'px');
+  };
+  $('device').addEventListener('change', setDevice);
   // the Living Room section under the scenes, as on the dashboard (mushroom light cards, half width); tap a light to switch it
   const LIGHTS = [['Living room light', '255, 154, 59'], ['Table light', '255, 155, 61'], ['Corner light', '255, 144, 71'],
     ['Round boll', '255, 162, 81'], ['Square lamp', '255, 155, 61'], ['Standing light', '255, 151, 51', 'floor']];
