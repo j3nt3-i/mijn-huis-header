@@ -125,8 +125,9 @@
     let wx = picked ? test.wx : real;
     wx = WX_FILE[wx] || wx;
     if (!SKY[wx + '-' + tod]) wx = 'cloudy';
-    // met.no never reports "windy": strong wind on a dry day picks the windy drawings (the cloudier one when cloudy)
-    if (!picked && windFrom(states).level && ['sunny', 'partlycloudy', 'cloudy'].includes(wx)) wx = wx === 'cloudy' ? 'windy-variant' : 'windy';
+    // met.no never reports "windy": strong wind on a clear day picks the windy drawing, on a cloudy day the windy and
+    // cloudy one; partly cloudy keeps its own drawing (the right amount of cloud) and gets the wind on top
+    if (!picked && windFrom(states).level && ['sunny', 'cloudy'].includes(wx)) wx = wx === 'cloudy' ? 'windy-variant' : 'windy';
     // snow on the ground (Open-Meteo, see below): the snowy versions of clear weather and sleet
     const snow = !picked && states[SNOW] ? Number(states[SNOW].state) >= 1 : false;
     if (snow && ['sunny', 'partlycloudy', 'windy'].includes(wx)) wx = 'snowsun';
@@ -171,7 +172,7 @@
   };
   // On a fresh load the bar and content are there at once; only the house settles into view (appearHouse)
   const appearFirst = true;
-  const SIG_KEY = 'np-house-sig-17';  // bump when the SVGs are replaced, so browsers fetch the new ones
+  const SIG_KEY = 'np-house-sig-18';  // bump when the SVGs are replaced, so browsers fetch the new ones
   let sigs = {};
   try { sigs = JSON.parse(localStorage.getItem(SIG_KEY) || '{}'); } catch (e) { sigs = {}; }
   let houseSlug = null, pending = null;

@@ -107,7 +107,7 @@ def prepare(slug, src):
         if right + left < 8: attrs['data-breathe'] = 0.06
         else: attrs.update({'data-l': round(left, 1), 'data-r': round(right, 1)})
         s = tag(s, m.group(0), attrs)
-    # wind on any weather: Jente's wind streaks (and, for rain and thunder, her blowing leaves) from the windy drawing of
+    # wind on any weather: Jente's wind streaks (and, for partly cloudy, rain and thunder, her blowing leaves) from the windy drawing of
     # the same time of day ride along, hidden (display none, so the plain drawing stays as drawn); the page shows them
     # only when it is windy. They go in just before the rain or snow, or on top when there is none.
     wx, tod = slug.rsplit('-', 1)
@@ -119,7 +119,7 @@ def prepare(slug, src):
                 el = m.group(0).replace('<path data-np="' + kind + '"', '<path data-np="' + kind + '" data-wind="1" display="none"', 1)
                 out.append(re.sub(r' id="([^"]*)"', lambda i: ' id="' + i.group(1) + ' (wind)"', el, count=1))
             return ''.join(out)
-        extra = borrowed('streak') + (borrowed('leaf') if wx in ('rainy', 'pouring', 'lightning', 'lightning-rainy') else '')
+        extra = borrowed('streak') + (borrowed('leaf') if wx in ('partlycloudy', 'rainy', 'pouring', 'lightning', 'lightning-rainy') else '')
         first_fall = re.search(r'<path data-np="fall"', s)
         at = first_fall.start() if first_fall else s.rindex('</svg>')
         s = s[:at] + extra + s[at:]

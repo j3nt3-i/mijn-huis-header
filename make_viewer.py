@@ -160,7 +160,7 @@ __SKY____OV____CRITTERS____WEATHER__
     // the same choice as the dashboard: a dry day with wind gets the windy drawing
     wind = { level: Number($('wind').value), dir: Number($('winddir').value), light: $('rainamt').value === 'light' };
     const wx0 = $('wx').value, tod = $('tod').value;
-    const wx = wind.level && ['sunny', 'partlycloudy', 'cloudy'].includes(wx0) ? (wx0 === 'cloudy' ? 'windy-variant' : 'windy') : wx0, slug = wx + '-' + tod;
+    const wx = wind.level && ['sunny', 'cloudy'].includes(wx0) ? (wx0 === 'cloudy' ? 'windy-variant' : 'windy') : wx0, slug = wx + '-' + tod;
     const down = $('down').checked, up = $('up').checked;
     document.documentElement.style.setProperty('--np-sky', SKY[slug] || '#2c3245');
     document.documentElement.style.setProperty('--np-ov-l', 'url("data:image/svg+xml;charset=utf-8,' + OV.head + (up ? OV.upOn : (LIT_UP.includes(slug) ? OV.upOff : '')) +
