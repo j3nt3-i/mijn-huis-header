@@ -22,11 +22,13 @@
     // tablet and desktop: an ambient glow in the sky colour of the drawing, strongest by the panel at the top left and
     // fading into the page colour; the bar lets it through (frosted, so cards scrolling under it stay calm)
     ':host([np-wide])::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(120% 90% at 15% 20%, ' +
-    'color-mix(in srgb, var(--np-sky, #2c3245) 55%, var(--primary-background-color)) 0%, color-mix(in srgb, var(--np-sky, #2c3245) 22%, var(--primary-background-color)) 60%, ' +
-    'color-mix(in srgb, var(--np-sky, #2c3245) 12%, var(--primary-background-color)) 100%); } ' +
+    'color-mix(in srgb, var(--np-glow, var(--np-sky, #2c3245)) 85%, var(--primary-background-color)) 0%, color-mix(in srgb, var(--np-glow, var(--np-sky, #2c3245)) 40%, var(--primary-background-color)) 55%, ' +
+    'color-mix(in srgb, var(--np-glow, var(--np-sky, #2c3245)) 14%, var(--primary-background-color)) 100%); } ' +
     ':host([np-wide]) .header { background: color-mix(in srgb, var(--primary-background-color) 35%, transparent) !important; ' +
     '-webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: none !important; } ' +
-    ':host([np-wide]) .toolbar { border-bottom-color: transparent !important; }';
+    ':host([np-wide]) .toolbar { border-bottom-color: transparent !important; } ' +
+    // HA's own view background would cover the glow
+    ':host([np-wide]) hui-view-background { background: transparent !important; }';
   // Tabs as a segmented control: a rounded track with a filled pill behind the active tab, no underline.
   const segCss = ' /*np-seg*/ ' +
     'ha-tab-group::part(tabs) { transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1); gap: 2px; padding: 3px; border-radius: 999px; background: rgba(var(--rgb-primary-text-color), 0.06); margin: 8px auto 0 auto; width: fit-content; height: 40px !important; box-sizing: border-box; align-items: center !important; border: none !important; } ' +
@@ -840,9 +842,10 @@
     placeSun();
     placeMoon();
   };
-  // The colour of the ground along the bottom of a drawing (the middle half of its very last row, averaged), worked
-  // out once per drawing and remembered
-  const grounds = last.groundsBottom || {};
+  // Two colours of a drawing, worked out once per drawing and remembered: the ground along the bottom (the middle half
+  // of its very last row) and the sky just above the trees (a full row at 40% height), which lights the page around the
+  // panel on wide screens - lighter and more colourful than the top of the sky, also at night
+  const grounds = last.skyTones || {};
   const groundOf = (slug, text) => {
     if (grounds[slug]) return Promise.resolve(grounds[slug]);
     return new Promise((ok) => {
@@ -854,23 +857,43 @@
           cv.width = 96; cv.height = 180;
           const g = cv.getContext('2d');
           g.drawImage(img, 0, 0, 96, 180);
-          const d = g.getImageData(24, 179, 48, 1).data, sum = [0, 0, 0];
-          for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) sum[k] += d[i + k];
-          ok('#' + sum.map((s) => Math.round(s / (d.length / 4)).toString(16).padStart(2, '0')).join(''));
+          const avg = (x, y, w) => {
+            const d = g.getImageData(x, y, w, 1).data, sum = [0, 0, 0];
+            for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) sum[k] += d[i + k];
+            return '#' + sum.map((s) => Math.round(s / (d.length / 4)).toString(16).padStart(2, '0')).join('');
+          };
+          ok({ ground: avg(24, 179, 48), glow: avg(0, 72, 96) });
         } catch (e) { ok(null); }  // a canvas that may not be read: no run-on, as before
         URL.revokeObjectURL(url);
       };
       img.onerror = () => { URL.revokeObjectURL(url); ok(null); };
       img.src = url;
-    }).then((col) => { if (col) { grounds[slug] = col; remember('groundsBottom', grounds); } return col; });
+    }).then((col) => { if (col) { grounds[slug] = col; remember('skyTones', grounds); } return col; });
+  };
+  // The glow keeps the hue of the horizon but gets a fixed lightness that suits the theme: just lighter than a dark
+  // page, just darker than a light one - so it shows as much by night as by day
+  const glowTone = (hex) => {
+    const bgc = getComputedStyle(document.documentElement).getPropertyValue('--primary-background-color').trim();
+    const m = bgc.match(/\d+(\.\d+)?/g), bgRgb = bgc[0] === '#' ? [1, 3, 5].map((i) => parseInt(bgc.substr(i, 2), 16)) : (m || [250, 250, 250]).slice(0, 3).map(Number);
+    const dark = (bgRgb[0] * 0.299 + bgRgb[1] * 0.587 + bgRgb[2] * 0.114) < 128;
+    let [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.substr(i, 2), 16) / 255);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let h = 0;
+    if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+    const s = Math.min(0.75, (d ? d / (1 - Math.abs(mx + mn - 1)) : 0) * 1.2 + 0.1), l = dark ? 0.27 : 0.86;
+    const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+    const f = (n) => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))));
+    return '#' + [f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, '0')).join('');
   };
   const extendGround = (ns, next) => {
     if (!next.text) return;
     if (!grounds[next.slug]) ns.removeAttribute('np-ext');
     groundOf(next.slug, next.text).then((col) => {
       if (!col || scene !== next) return;
-      ns.style.setProperty('--np-ground', col);
+      ns.style.setProperty('--np-ground', col.ground);
       ns.setAttribute('np-ext', '');
+      document.documentElement.style.setProperty('--np-glow', glowTone(col.glow));
     });
   };
   // Only move what can be seen: once the picture has scrolled out of view, everything in it pauses (and the birds, dog
