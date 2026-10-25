@@ -1302,8 +1302,11 @@
     const tick = () => {
       const card = findHeaderCard(h.shadowRoot);
       const hc = card && card.shadowRoot && card.shadowRoot.querySelector('ha-card');
+      // tablet and desktop: the panel layout goes in while the page is still hidden, so it never jumps into place
+      const wide = window.innerWidth > 870;
+      if (wide) setPanel(h, true);
       let ready = false;
-      if (hc && hc.getBoundingClientRect().height > 150) {
+      if (hc && hc.getBoundingClientRect().height > 150 && (!wide || (panelView && panelView.hasAttribute('np-panel')))) {
         // and the layout below has settled: the positions of the sections and the scene cards are the same 4 frames in a row
         const boxes = [];
         const walk = (r) => { for (const n of r.querySelectorAll('*')) { if (n.tagName === 'HUI-SECTION' || n.tagName === 'HUI-CARD') boxes.push(n); if (n.shadowRoot) walk(n.shadowRoot); } };

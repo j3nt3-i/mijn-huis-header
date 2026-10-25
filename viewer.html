@@ -171,7 +171,10 @@ button{cursor:pointer}
     'np-scene[np-ext] .stage { bottom: var(--np-run); } ' +
     'np-scene[np-ext] .pin { background: linear-gradient(to bottom, var(--np-sky, #2c3245) calc(100% - var(--np-run) - 1px), var(--np-ground) calc(100% - var(--np-run) - 1px)); } ' +
     // the old single-image layer goes away completely (also its sky colour, which would shine through the bottom fade)
-    'ha-card[np-layered]::before { background: none !important; }';
+    'ha-card[np-layered]::before { background: none !important; } ' +
+    // tablet and desktop: the card is a panel with the whole drawing, so the scene simply fills it
+    '@media (min-width: 871px) { np-scene, np-scene[np-ext] { top: 0; height: 100%; -webkit-mask: none; mask: none; } np-scene .pin { animation: none; } ' +
+    'np-scene .pin::after { display: none; } np-scene .stage, np-scene[np-ext] .stage { bottom: 0; } }';
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   const openTag = (el, skip) => '<' + el.localName + [...el.attributes].filter((a) => !skip.includes(a.name) && !a.name.startsWith('data-np'))
     .map((a) => ' ' + a.name + '="' + esc(a.value) + '"').join('') + '>';
