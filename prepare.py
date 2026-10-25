@@ -107,6 +107,38 @@ def prepare(slug, src):
         if right + left < 8: attrs['data-breathe'] = 0.06
         else: attrs.update({'data-l': round(left, 1), 'data-r': round(right, 1)})
         s = tag(s, m.group(0), attrs)
+    # wind on any weather: Jente's wind streaks (and, for rain and thunder, her blowing leaves) from the windy drawing of
+    # the same time of day ride along, hidden (display none, so the plain drawing stays as drawn); the page shows them
+    # only when it is windy. They go in just before the rain or snow, or on top when there is none.
+    wx, tod = slug.rsplit('-', 1)
+    if not wx.startswith('windy'):
+        windy = prepare(f'windy-{tod}', f'hh/windy-{tod}.svg')
+        def borrowed(kind):
+            out = []
+            for m in re.finditer(r'<path data-np="' + kind + r'"[^>]*/>', windy):
+                el = m.group(0).replace('<path data-np="' + kind + '"', '<path data-np="' + kind + '" data-wind="1" display="none"', 1)
+                out.append(re.sub(r' id="([^"]*)"', lambda i: ' id="' + i.group(1) + ' (wind)"', el, count=1))
+            return ''.join(out)
+        extra = borrowed('streak') + (borrowed('leaf') if wx in ('rainy', 'pouring', 'lightning', 'lightning-rainy') else '')
+        first_fall = re.search(r'<path data-np="fall"', s)
+        at = first_fall.start() if first_fall else s.rindex('</svg>')
+        s = s[:at] + extra + s[at:]
+    # the trees behind the house can sway in the wind: each tree (or tree crown) gets its own layer box, with room for
+    # the lean; the page only splits them off when it is windy, otherwise they stay part of the still drawing
+    root = ET.fromstring(s)
+    tree = re.compile(r'^(Boom|Kleine boom|Boomkruin)(_\d+)?$')
+    def visit_tree(el, inside):
+        i = el.get('id') or ''
+        hit = bool(tree.match(i)) and not inside
+        if hit:
+            bx = ebox(el)
+            m = elem(s_ref[0], i)
+            if bx and m and bx[3] - bx[1] < 250 and 'data-np=' not in m.group(0):
+                s_ref[0] = tag(s_ref[0], m.group(0), {'data-np': 'tree', 'data-box': f'{bx[0] - 14:.1f} {bx[1] - 6:.1f} {bx[2] + 14:.1f} {bx[3]:.1f}'})
+        for k in el: visit_tree(k, inside or hit)
+    s_ref = [s]
+    visit_tree(root, False)
+    s = s_ref[0]
     # the sun (day, dawn, dusk): sun and glow move together to where the sun really is (azimuth/elevation)
     for lid in ('Zon', 'Zongloed'):
         m = elem(s, lid)

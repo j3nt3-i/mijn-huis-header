@@ -39,6 +39,8 @@ button{cursor:pointer}
   <h2>Tekening</h2>
   <label>Weer<select id="wx"></select></label>
   <label>Dagdeel<select id="tod"><option value="dawn">Ochtendschemer</option><option value="day">Dag</option><option value="dusk">Avondschemer</option><option value="night">Nacht</option></select></label>
+  <label>Wind<select id="wind"><option value="0">Geen</option><option value="1">Winderig (vanaf 29 km/u)</option><option value="2">Storm (vanaf 50 km/u)</option></select></label>
+  <label>Windrichting<select id="winddir"><option value="-1">Westenwind (van rechts naar links)</option><option value="1">Oostenwind (van links naar rechts)</option></select></label>
   <div class="row"><button id="prev">← Vorige</button><button id="next">Volgende →</button></div>
   <button id="enter">▶ Laadanimatie afspelen</button>
   <label class="check"><input type="checkbox" id="light"> Lichte modus</label>
@@ -154,7 +156,10 @@ __SKY____OV____CRITTERS____WEATHER__
   const nb = document.createElement('np-birds'); nb.innerHTML = birdHTML + '<u></u><s class="dn"></s><s class="dn n2"></s><s class="dn n3"></s><s class="dn n4"></s><s class="up"></s><s class="up n2"></s><s class="up n3"></s><s class="up n4"></s><s class="up l"></s><s class="up l n2"></s><s class="up l n3"></s>'; hc.appendChild(nb);
   let busy = 0;
   const render = async () => {
-    const wx = $('wx').value, tod = $('tod').value, slug = wx + '-' + tod;
+    // the same choice as the dashboard: a dry day with wind gets the windy drawing
+    wind = { level: Number($('wind').value), dir: Number($('winddir').value) };
+    const wx0 = $('wx').value, tod = $('tod').value;
+    const wx = wind.level && ['sunny', 'partlycloudy', 'cloudy'].includes(wx0) ? (wx0 === 'cloudy' ? 'windy-variant' : 'windy') : wx0, slug = wx + '-' + tod;
     const down = $('down').checked, up = $('up').checked;
     document.documentElement.style.setProperty('--np-sky', SKY[slug] || '#2c3245');
     document.documentElement.style.setProperty('--np-ov-l', 'url("data:image/svg+xml;charset=utf-8,' + OV.head + (up ? OV.upOn : (LIT_UP.includes(slug) ? OV.upOff : '')) +
@@ -189,7 +194,7 @@ __SKY____OV____CRITTERS____WEATHER__
     i = (i + d + all.length) % all.length;
     $('wx').value = all[i][0]; $('tod').value = all[i][1]; render();
   };
-  for (const id of ['wx', 'tod', 'down', 'up', 'porch', 'music', 'musicup']) $(id).addEventListener('change', render);
+  for (const id of ['wx', 'tod', 'wind', 'winddir', 'down', 'up', 'porch', 'music', 'musicup']) $(id).addEventListener('change', render);
   $('light').addEventListener('change', () => {
     const l = $('light').checked;
     document.documentElement.style.setProperty('--primary-background-color', l ? '#f2f2f2' : '#1c1c1c');

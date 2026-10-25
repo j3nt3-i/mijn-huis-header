@@ -125,6 +125,8 @@
     let wx = picked ? test.wx : real;
     wx = WX_FILE[wx] || wx;
     if (!SKY[wx + '-' + tod]) wx = 'cloudy';
+    // met.no never reports "windy": strong wind on a dry day picks the windy drawings (the cloudier one when cloudy)
+    if (!picked && windFrom(states).level && ['sunny', 'partlycloudy', 'cloudy'].includes(wx)) wx = wx === 'cloudy' ? 'windy-variant' : 'windy';
     // snow on the ground (Open-Meteo, see below): the snowy versions of clear weather and sleet
     const snow = !picked && states[SNOW] ? Number(states[SNOW].state) >= 1 : false;
     if (snow && ['sunny', 'partlycloudy', 'windy'].includes(wx)) wx = 'snowsun';
@@ -152,7 +154,7 @@
   };
   // On a fresh load the bar and content are there at once; only the house settles into view (appearHouse)
   const appearFirst = true;
-  const SIG_KEY = 'np-house-sig-16';  // bump when the SVGs are replaced, so browsers fetch the new ones
+  const SIG_KEY = 'np-house-sig-17';  // bump when the SVGs are replaced, so browsers fetch the new ones
   let sigs = {};
   try { sigs = JSON.parse(localStorage.getItem(SIG_KEY) || '{}'); } catch (e) { sigs = {}; }
   let houseSlug = null, pending = null;
@@ -438,6 +440,14 @@
     .map((a) => ' ' + a.name + '="' + esc(a.value) + '"').join('') + '>';
   const nums = (s) => s.split(/\s+/).map(Number);
   let scene = null;  // { slug, urls, layers: [{ el, kind, box, anim }] }
+  // Wind from the weather: level 0 calm, 1 windy (from 29 km/h, Beaufort 5), 2 stormy (from 50 km/h, Beaufort 7); dir is
+  // where it blows on screen. The house faces north, so we look south: a west wind blows from right to left (-1).
+  let wind = last.wind || { level: 0, dir: -1 };
+  const windFrom = (states) => {
+    const a = states['weather.forecast_home'] ? states['weather.forecast_home'].attributes : {};
+    const kmh = (Number(a.wind_speed) || 0) * (a.wind_speed_unit === 'm/s' ? 3.6 : 1), b = Number(a.wind_bearing);
+    return { level: kmh >= 50 ? 2 : kmh >= 29 ? 1 : 0, dir: isNaN(b) || Math.sin(b * Math.PI / 180) < 0 ? -1 : 1 };
+  };
   let pendingScene = null;  // built before the header card existed
   let sceneToken = 0;
   const buildScene = (text, slug) => {
@@ -465,15 +475,18 @@
     let skyAt = units.findIndex((u) => ['cloud', 'twinkle', 'sparkle'].includes(np(u)));
     if (skyAt < 0) { skyAt = 1; units.forEach((u, i) => { if (np(u) === 'sun') skyAt = i + 1; }); }
     units.splice(skyAt, 0, { marker: 'sky' });
+    // windy: real wind, or a windy drawing picked by hand (then it blows as for level 1)
+    const windy = wind.level > 0 || slug.startsWith('windy'), gust = wind.level || 1;
     const segs = [];
     let cur = [];
     units.forEach((u, i) => {
       if (u.marker) { if (cur.length) { segs.push({ kind: 'static', ids: cur }); cur = []; } segs.push({ kind: u.marker }); return; }
       u.setAttribute('data-np-i', i);
-      const kind = u.getAttribute('data-np') === 'light' ? null : u.getAttribute('data-np');
+      const np = u.getAttribute('data-np');
+      const kind = np === 'light' || (np === 'tree' && !windy) ? null : np;
       if (kind) {
         if (cur.length) { segs.push({ kind: 'static', ids: cur }); cur = []; }
-        if (u.getAttribute('display') !== 'none') segs.push({ kind, el: u });
+        if (u.getAttribute('display') !== 'none' || (u.hasAttribute('data-wind') && wind.level)) segs.push({ kind, el: u });
       } else {
         cur.push(String(i));
         if (u.hasAttribute('data-np-break')) { segs.push({ kind: 'static', ids: cur }); cur = []; }
@@ -488,16 +501,17 @@
     const blob = (svg) => { const u = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })); urls.push(u); return u; };
     // one moving part on its own: its ancestors (for inherited paint and transforms, but without the canvas clip,
     // because the part itself moves) plus all definitions
-    const partSvg = (el, viewBox, extra, keepClip) => {
+    const partSvg = (el, viewBox, extra, keepClip, wrap) => {
       const chain = [];
       for (let p = el.parentElement; p && p !== root; p = p.parentElement) chain.unshift(p);
       const self = el.cloneNode(true);
       for (const a of [...self.attributes]) if (a.name.startsWith('data-np')) self.removeAttribute(a.name);
+      if (el.hasAttribute('data-wind')) self.removeAttribute('display');
       // keep the drawing's own root attributes (Figma sets fill="none" there, which the strokes rely on)
       const rootAttrs = [...root.attributes].filter((a) => !['width', 'height', 'viewBox', 'xmlns'].includes(a.name))
         .map((a) => ' ' + a.name + '="' + esc(a.value) + '"').join('');
       return '<svg xmlns="http://www.w3.org/2000/svg"' + rootAttrs + ' viewBox="' + viewBox + '" preserveAspectRatio="none">' + defs +
-        chain.map((p) => openTag(p, keepClip ? ['id'] : ['clip-path', 'mask', 'id'])).join('') + ser.serializeToString(self) + (extra || '') +
+        chain.map((p) => openTag(p, keepClip ? ['id'] : ['clip-path', 'mask', 'id'])).join('') + (wrap || String)(ser.serializeToString(self) + (extra || '')) +
         chain.map((p) => '</' + p.localName + '>').reverse().join('') + '</svg>';
     };
     const layers = [];
@@ -523,42 +537,73 @@
       const el = sg.el, id = el.getAttribute('id');
       const box = el.hasAttribute('data-box') ? nums(el.getAttribute('data-box')) : [0, 0, 887, 1662];
       const dur = Number(el.getAttribute('data-dur') || 0) * 1000;
+      // with wind, rain and snow lean over: the drops are sheared (around the middle of their own area, with copies left
+      // and right to fill the corners) and fall along the slant; per loop the layer moves sideways by tan(angle) x the
+      // loop length, so its area reaches that far upwind and the loop stays seamless
+      const slope = wind.level ? Math.tan((wind.level === 2 ? 24 : 14) * Math.PI / 180) : 0;
+      const shear = (cy, span) => (s) => '<g transform="translate(0 ' + cy + ') skewX(' + (wind.dir * Math.atan(slope) * 180 / Math.PI).toFixed(2) + ') translate(0 ' + -cy + ')">' +
+        '<g id="np-lean">' + s + '</g><use href="#np-lean" x="' + -span + '"/><use href="#np-lean" x="' + span + '"/></g>';
       if (sg.kind === 'fall') {
-        const d = Number(el.getAttribute('data-d')), copy = el.getAttribute('data-copy') === '1';
-        L.box = [0, -d, 887, 1662];
-        L.url = blob(partSvg(el, '0 ' + -d + ' 887 ' + (1662 + d), copy ? '<use href="#' + id + '" y="' + -d + '"/>' : ''));
-        L.anim = (u) => [[{ transform: 'translateY(0)' }, { transform: 'translateY(' + d * u + 'px)' }], { duration: dur, iterations: Infinity }];
+        const d = Number(el.getAttribute('data-d')), copy = el.getAttribute('data-copy') === '1', E = slope * d;
+        L.box = [wind.dir > 0 ? -E : 0, -d, wind.dir < 0 ? 887 + E : 887, 1662];
+        L.url = blob(partSvg(el, L.box[0] + ' ' + -d + ' ' + (L.box[2] - L.box[0]) + ' ' + (1662 + d), copy ? '<use href="#' + id + '" y="' + -d + '"/>' : '', false,
+          slope ? shear(831, 887) : null));
+        L.anim = (u) => [[{ transform: 'translate(0, 0)' }, { transform: 'translate(' + wind.dir * E * u + 'px, ' + d * u + 'px)' }], { duration: dur, iterations: Infinity }];
       } else if (sg.kind === 'lamp') {
-        const d = Number(el.getAttribute('data-d'));
+        const d = Number(el.getAttribute('data-d')), E = slope * d;
         const [x0, y0, x1, y1] = box;
         L.box = box; L.inner = [y0 - d, y1];
-        L.url = blob(partSvg(el, x0 + ' ' + (y0 - d) + ' ' + (x1 - x0) + ' ' + (y1 - y0 + d), '<use href="#' + id + '" y="' + -d + '"/>'));
-        L.anim = (u) => [[{ transform: 'translateY(0)' }, { transform: 'translateY(' + d * u + 'px)' }], { duration: dur, iterations: Infinity }];
+        L.innerX = [wind.dir > 0 ? x0 - E : x0, wind.dir < 0 ? x1 + E : x1];
+        L.url = blob(partSvg(el, L.innerX[0] + ' ' + (y0 - d) + ' ' + (L.innerX[1] - L.innerX[0]) + ' ' + (y1 - y0 + d), '<use href="#' + id + '" y="' + -d + '"/>', false,
+          slope ? shear((y0 + y1) / 2, x1 - x0) : null));
+        L.anim = (u) => [[{ transform: 'translate(0, 0)' }, { transform: 'translate(' + wind.dir * E * u + 'px, ' + d * u + 'px)' }], { duration: dur, iterations: Infinity }];
       } else if (sg.kind === 'streak') {
-        const W = Number(el.getAttribute('data-w'));
-        L.box = [-W, box[1], 887, box[3]];
+        // Jente's streaks blow to the right; a west wind turns them round (mirrored, so their curls point downwind)
+        const W = Number(el.getAttribute('data-w')), flip = wind.dir < 0 ? ' scaleX(-1)' : '', sdur = dur / (wind.level === 2 ? 1.6 : 1);
+        L.box = wind.dir < 0 ? [0, box[1], 887 + W, box[3]] : [-W, box[1], 887, box[3]];
         L.url = blob(partSvg(el, -W + ' ' + box[1] + ' ' + (887 + W) + ' ' + (box[3] - box[1]), '<use href="#' + id + '" x="' + -W + '"/>'));
-        L.anim = (u) => [[{ transform: 'translateX(0)' }, { transform: 'translateX(' + W * u + 'px)' }], { duration: dur, iterations: Infinity }];
+        L.anim = (u) => [[{ transform: 'translateX(0)' + flip }, { transform: 'translateX(' + wind.dir * W * u + 'px)' + flip }], { duration: sdur, iterations: Infinity }];
       } else if (sg.kind === 'leaf') {
-        const [a, b, rise, spin, ldur, begin] = nums(el.getAttribute('data-k'));
-        L.box = box;
+        // the blown leaves go the wind's way too (the whole flight mirrored)
+        const [a0, b0, rise, spin0, ldur, begin] = nums(el.getAttribute('data-k'));
+        const m = wind.dir < 0 ? -1 : 1, a = a0 * m, b = b0 * m, spin = spin0 * m, flip = m < 0 ? ' scaleX(-1)' : '';
+        L.box = m < 0 ? [887 - box[2], box[1], 887 - box[0], box[3]] : box;
         L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
-        L.anim = (u) => [[{ transform: 'translate(' + a * u + 'px,' + rise * 0.4 * u + 'px) rotate(0deg)' },
-          { transform: 'translate(' + (a + b) / 2 * u + 'px,' + -rise * 0.3 * u + 'px) rotate(' + spin / 2 + 'deg)' },
-          { transform: 'translate(' + b * u + 'px,' + -rise * u + 'px) rotate(' + spin + 'deg)' }],
+        L.anim = (u) => [[{ transform: 'translate(' + a * u + 'px,' + rise * 0.4 * u + 'px) rotate(0deg)' + flip },
+          { transform: 'translate(' + (a + b) / 2 * u + 'px,' + -rise * 0.3 * u + 'px) rotate(' + spin / 2 + 'deg)' + flip },
+          { transform: 'translate(' + b * u + 'px,' + -rise * u + 'px) rotate(' + spin + 'deg)' + flip }],
           { duration: ldur * 1000, iterations: Infinity, delay: -begin * 1000 }];
       } else if (sg.kind === 'cloud') {
-        // sways back and forth (or breathes, for clouds running edge to edge), smooth and composited
+        // sways back and forth (or breathes, for clouds running edge to edge), smooth and composited; faster in wind
         L.box = box;
         L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
-        const opt = { duration: dur, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out', delay: -Number(el.getAttribute('data-begin') || 0) * 1000 };
+        const opt = { duration: dur / [1, 1.8, 2.8][wind.level], iterations: Infinity, direction: 'alternate', easing: 'ease-in-out', delay: -Number(el.getAttribute('data-begin') || 0) * 1000 };
         if (el.hasAttribute('data-breathe')) {
           const k = 1 + Number(el.getAttribute('data-breathe'));
           L.anim = () => [[{ transform: 'scaleX(1)' }, { transform: 'scaleX(' + k + ')' }], opt];
+        } else if (windy && box[0] > 0 && box[2] < 887 && box[3] < 760) {
+          // in wind a free-floating cloud drifts along: out on the downwind side, back in on the other, starting where it
+          // is drawn; faster in harder wind, high clouds a little faster than low ones. Clouds drawn against an edge or
+          // down behind the trees have a straight side that must stay hidden, so they keep swaying (faster) instead.
+          const [x0, y0, x1] = box, pad = 10;
+          const start = wind.dir < 0 ? 887 - x0 + pad : -x1 - pad, end = wind.dir < 0 ? -x1 - pad : 887 - x0 + pad;
+          const speed = [0, 16, 34][gust] * (1.25 - 0.5 * Math.min(1, Math.max(0, y0 / 900)));
+          const ddur = Math.abs(end - start) / speed * 1000;
+          L.anim = (u) => [[{ transform: 'translateX(' + start * u + 'px)' }, { transform: 'translateX(' + end * u + 'px)' }],
+            { duration: ddur, iterations: Infinity, easing: 'linear', delay: -(-start / (end - start)) * ddur }];
         } else {
           const l = Number(el.getAttribute('data-l')), r = Number(el.getAttribute('data-r'));
           L.anim = (u) => [[{ transform: 'translateX(' + -l * u + 'px)' }, { transform: 'translateX(' + r * u + 'px)' }], opt];
         }
+      } else if (sg.kind === 'tree') {
+        L.box = box;
+        L.url = blob(partSvg(el, box[0] + ' ' + box[1] + ' ' + (box[2] - box[0]) + ' ' + (box[3] - box[1])));
+        const i = Number(el.getAttribute('data-np-i')) || 0, sk = (f) => ({ transform: 'skewX(' + (-lean * f).toFixed(2) + 'deg)' });
+        const lean = (gust === 2 ? 7 : 1.6) * wind.dir;
+        // windy: a calm sway; storm: bent far over and thrashing in uneven gusts
+        L.anim = () => gust === 2
+          ? [[sk(0.35), sk(1), sk(0.55), sk(0.95), sk(0.3), sk(0.8), sk(0.35)], { duration: 2400 + (i * 337) % 900, iterations: Infinity, easing: 'ease-in-out', delay: -((i * 731) % 2400) }]
+          : [[sk(0.25), sk(1)], { duration: 2600 + (i * 337) % 900, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out', delay: -((i * 731) % 2000) }];
       } else if (sg.kind === 'twinkle') {
         // a third of the stars dims and brightens, at its own pace
         L.box = box;
@@ -708,6 +753,12 @@
       if (L.drawn !== key) { L.drawn = key; el.style.backgroundImage = svgUri(moonDisc(L.disc, m.lit, m.angle)); }
     }
   };
+  const followWind = (states) => {
+    const w = windFrom(states);
+    if (w.level === wind.level && w.dir === wind.dir) return;
+    wind = w; remember('wind', w);
+    if (scene && scene.text) placeBuilt(buildScene(scene.text, scene.slug));
+  };
   const followMoon = (hass) => {
     const live = !(test.on && test.tod !== 'echt') && hass.config && hass.config.latitude != null;
     if (live === !!moonSky && Date.now() - moonAt < 60e3) return;
@@ -726,6 +777,7 @@
         Object.assign(el.style, { left: x0 * u + 'px', top: y0 * u + 'px', width: (x1 - x0) * u + 'px', height: (y1 - y0) * u + 'px' });
       }
       if (L.inner) Object.assign(L.target.style, { top: (L.inner[0] - L.box[1]) * u + 'px', height: (L.inner[1] - L.inner[0]) * u + 'px' });
+      if (L.innerX) Object.assign(L.target.style, { left: (L.innerX[0] - L.box[0]) * u + 'px', width: (L.innerX[1] - L.innerX[0]) * u + 'px' });
       if (L.anim && !still) {
         const [kf, opt] = L.anim(u);
         if (L.running) L.running.effect.setKeyframes(kf);
@@ -823,6 +875,7 @@
       if (L.anim) el.style.willChange = ['bolt', 'glow', 'dark', 'twinkle'].includes(L.kind) ? 'opacity' : L.kind === 'sparkle' ? 'transform, opacity' : 'transform';
       if (L.kind === 'sun' || L.kind === 'moon') el.style.willChange = 'transform';
       if (L.kind === 'leaf' || L.kind === 'sparkle') el.style.transformOrigin = 'center';
+      if (L.kind === 'tree') el.style.transformOrigin = '50% 100%';
       frag.appendChild(el);
     }
     // swap in the new layers only when all of them are decoded, so they appear together (at most 4 s wait)
@@ -1237,7 +1290,7 @@
     h.toggleAttribute('np-page', onHuis && narrow && atScenes);
     const ha = document.querySelector('home-assistant');
     const states = (ha && ha.hass && ha.hass.states) || {};
-    if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); followSun(states); followMoon(ha.hass); }
+    if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); followSun(states); followMoon(ha.hass); followWind(states); }
     if (ha && ha.hass && onHuis) checkSnow(ha);
     // weather preview button next to the segmented control (Huis view only)
     h.toggleAttribute('np-huis', onHuis);
