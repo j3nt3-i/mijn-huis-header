@@ -40,6 +40,7 @@ button{cursor:pointer}
   <label>Weer<select id="wx"></select></label>
   <label>Dagdeel<select id="tod"><option value="dawn">Ochtendschemer</option><option value="day">Dag</option><option value="dusk">Avondschemer</option><option value="night">Nacht</option></select></label>
   <label>Wind<select id="wind"><option value="0">Geen</option><option value="1">Winderig (vanaf 29 km/u)</option><option value="2">Storm (vanaf 50 km/u)</option></select></label>
+  <label>Hoeveelheid regen of sneeuw<select id="rainamt"><option value="normal">Normaal (0,5 mm/u of meer)</option><option value="light">Licht (minder dan 0,5 mm/u)</option></select></label>
   <label>Windrichting<select id="winddir"><option value="-1">Westenwind (van rechts naar links)</option><option value="1">Oostenwind (van links naar rechts)</option></select></label>
   <div class="row"><button id="prev">← Vorige</button><button id="next">Volgende →</button></div>
   <button id="enter">▶ Laadanimatie afspelen</button>
@@ -157,7 +158,7 @@ __SKY____OV____CRITTERS____WEATHER__
   let busy = 0;
   const render = async () => {
     // the same choice as the dashboard: a dry day with wind gets the windy drawing
-    wind = { level: Number($('wind').value), dir: Number($('winddir').value) };
+    wind = { level: Number($('wind').value), dir: Number($('winddir').value), light: $('rainamt').value === 'light' };
     const wx0 = $('wx').value, tod = $('tod').value;
     const wx = wind.level && ['sunny', 'partlycloudy', 'cloudy'].includes(wx0) ? (wx0 === 'cloudy' ? 'windy-variant' : 'windy') : wx0, slug = wx + '-' + tod;
     const down = $('down').checked, up = $('up').checked;
@@ -194,7 +195,7 @@ __SKY____OV____CRITTERS____WEATHER__
     i = (i + d + all.length) % all.length;
     $('wx').value = all[i][0]; $('tod').value = all[i][1]; render();
   };
-  for (const id of ['wx', 'tod', 'wind', 'winddir', 'down', 'up', 'porch', 'music', 'musicup']) $(id).addEventListener('change', render);
+  for (const id of ['wx', 'tod', 'wind', 'winddir', 'rainamt', 'down', 'up', 'porch', 'music', 'musicup']) $(id).addEventListener('change', render);
   $('light').addEventListener('change', () => {
     const l = $('light').checked;
     document.documentElement.style.setProperty('--primary-background-color', l ? '#f2f2f2' : '#1c1c1c');

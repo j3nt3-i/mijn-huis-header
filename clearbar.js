@@ -152,6 +152,23 @@
     } catch (e) { /* offline: try again next time */ }
     snowBusy = false;
   };
+  // Wind, gusts and rain at home from Open-Meteo, every 15 minutes (met.no gives no gusts and no current amount);
+  // kept on the device, used for how hard the wind blows and how hard it rains in the picture
+  const METEO_KEY = 'np-meteo';
+  let meteo = null, meteoBusy = false;
+  try { meteo = JSON.parse(localStorage.getItem(METEO_KEY) || 'null'); } catch (e) { meteo = null; }
+  const checkMeteo = async (ha) => {
+    if (meteoBusy || (meteo && Date.now() - meteo.t < 15 * 60e3) || !ha.hass.config) return;
+    meteoBusy = true;
+    try {
+      const lat = ha.hass.config.latitude.toFixed(2), lon = ha.hass.config.longitude.toFixed(2);
+      const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=wind_speed_10m,wind_gusts_10m,precipitation');
+      const cur = (await r.json()).current;
+      meteo = { t: Date.now(), speed: cur.wind_speed_10m, gust: cur.wind_gusts_10m, rate: (cur.precipitation || 0) * 3600 / (cur.interval || 900) };
+      try { localStorage.setItem(METEO_KEY, JSON.stringify(meteo)); } catch (e) { /* private mode */ }
+    } catch (e) { /* offline: try again next time */ }
+    meteoBusy = false;
+  };
   // On a fresh load the bar and content are there at once; only the house settles into view (appearHouse)
   const appearFirst = true;
   const SIG_KEY = 'np-house-sig-17';  // bump when the SVGs are replaced, so browsers fetch the new ones
@@ -303,7 +320,7 @@
     requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.style.setProperty('--np-house', cur)));
     if (scene) for (const L of scene.layers) {
       if (L.smil && L.node) { const bg = L.node.style.backgroundImage; L.node.style.backgroundImage = 'none'; requestAnimationFrame(() => requestAnimationFrame(() => { L.node.style.backgroundImage = bg; })); }
-      if (L.running) L.running.play();
+      if (L.running && sceneSeen) L.running.play();
     }
   };
   document.addEventListener('visibilitychange', () => { if (!document.hidden) restartHouse(); });
@@ -326,7 +343,7 @@
   const birdHTML = BIRDS.map((b, n) => '<b class="b' + n + '">' + (b.flock || [[0, 0]]).map(([x, y], k) =>
     '<i style="left:' + x + 'px;top:' + y + 'px;width:' + b.size + 'px;height:' + b.size / 2 + 'px;opacity:' + (b.op || 1) +
     ';animation-duration:' + (1.5 + ((n + k) % 4) * 0.3).toFixed(1) + 's;animation-delay:-' + (k * 0.6) + 's"></i>').join('') + '</b>').join('');
-  const BIRD_CSS = 'np-birds { position: absolute; z-index: -1; pointer-events: none; left: 0; width: 100%; overflow: hidden; display: block; ' +
+  const BIRD_CSS = 'np-birds[np-paused], np-birds[np-paused] * { animation-play-state: paused !important; } np-birds { position: absolute; z-index: -1; pointer-events: none; left: 0; width: 100%; overflow: hidden; display: block; ' +
     'top: calc(-1 * (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); ' +
     'will-change: transform; animation: np-pin linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
     '@keyframes np-pin { from { transform: translateY(0); } to { transform: translateY(1000px); } } ' +
@@ -440,13 +457,18 @@
     .map((a) => ' ' + a.name + '="' + esc(a.value) + '"').join('') + '>';
   const nums = (s) => s.split(/\s+/).map(Number);
   let scene = null;  // { slug, urls, layers: [{ el, kind, box, anim }] }
-  // Wind from the weather: level 0 calm, 1 windy (from 29 km/h, Beaufort 5), 2 stormy (from 50 km/h, Beaufort 7); dir is
-  // where it blows on screen. The house faces north, so we look south: a west wind blows from right to left (-1).
-  let wind = last.wind || { level: 0, dir: -1 };
+  // Wind from the weather: level 0 calm, 1 windy (from 29 km/h, Beaufort 5, or gusts from 50), 2 stormy (from 50 km/h,
+  // Beaufort 7, or gusts from 75, KNMI's warning level); dir is where it blows on screen. The house faces north, so we
+  // look south: a west wind blows from right to left (-1). Speed from met.no, or Open-Meteo when that is higher; gusts
+  // from Open-Meteo (less than 45 minutes old). light: it rains or snows less than 0.5 mm an hour.
+  let wind = last.wind || { level: 0, dir: -1, light: false };
   const windFrom = (states) => {
     const a = states['weather.forecast_home'] ? states['weather.forecast_home'].attributes : {};
-    const kmh = (Number(a.wind_speed) || 0) * (a.wind_speed_unit === 'm/s' ? 3.6 : 1), b = Number(a.wind_bearing);
-    return { level: kmh >= 50 ? 2 : kmh >= 29 ? 1 : 0, dir: isNaN(b) || Math.sin(b * Math.PI / 180) < 0 ? -1 : 1 };
+    const m = meteo && Date.now() - meteo.t < 45 * 60e3 ? meteo : null;
+    const kmh = Math.max((Number(a.wind_speed) || 0) * (a.wind_speed_unit === 'm/s' ? 3.6 : 1), m ? m.speed || 0 : 0);
+    const gust = m ? m.gust || 0 : 0, b = Number(a.wind_bearing);
+    return { level: kmh >= 50 || gust >= 75 ? 2 : kmh >= 29 || gust >= 50 ? 1 : 0, dir: isNaN(b) || Math.sin(b * Math.PI / 180) < 0 ? -1 : 1,
+      light: m ? m.rate < 0.5 : false };
   };
   let pendingScene = null;  // built before the header card existed
   let sceneToken = 0;
@@ -493,6 +515,12 @@
       }
     });
     if (cur.length) segs.push({ kind: 'static', ids: cur });
+    // light rain or snow: the nearer half of the falling layers stays away (they are drawn far to near)
+    if (wind.light) {
+      const falls = segs.filter((sg) => sg.kind === 'fall');
+      falls.slice(Math.ceil(falls.length / 2)).forEach((sg) => segs.splice(segs.indexOf(sg), 1));
+      falls.slice(0, Math.ceil(falls.length / 2)).forEach((sg) => { sg.faint = true; });
+    }
     const ser = new XMLSerializer();
     const defs = [...root.querySelectorAll('defs, mask, clipPath, linearGradient, radialGradient, filter, pattern')]
       .filter((d) => !d.parentElement.closest('defs, mask, clipPath, linearGradient, radialGradient, filter, pattern'))
@@ -549,6 +577,7 @@
         L.url = blob(partSvg(el, L.box[0] + ' ' + -d + ' ' + (L.box[2] - L.box[0]) + ' ' + (1662 + d), copy ? '<use href="#' + id + '" y="' + -d + '"/>' : '', false,
           slope ? shear(831, 887) : null));
         L.anim = (u) => [[{ transform: 'translate(0, 0)' }, { transform: 'translate(' + wind.dir * E * u + 'px, ' + d * u + 'px)' }], { duration: dur, iterations: Infinity }];
+        if (sg.faint) L.opacity = 0.75;
       } else if (sg.kind === 'lamp') {
         const d = Number(el.getAttribute('data-d')), E = slope * d;
         const [x0, y0, x1, y1] = box;
@@ -755,7 +784,7 @@
   };
   const followWind = (states) => {
     const w = windFrom(states);
-    if (w.level === wind.level && w.dir === wind.dir) return;
+    if (w.level === wind.level && w.dir === wind.dir && w.light === wind.light) return;
     wind = w; remember('wind', w);
     if (scene && scene.text) placeBuilt(buildScene(scene.text, scene.slug));
   };
@@ -820,6 +849,23 @@
       ns.setAttribute('np-ext', '');
     });
   };
+  // Only move what can be seen: once the picture has scrolled out of view, everything in it pauses (and the birds, dog
+  // and notes too), and goes on where it was when it comes back. Nobody walks or flies past meanwhile.
+  let sceneSeen = true;
+  const held = new Set();
+  const holdScene = () => {
+    const first = scene && scene.layers.find((L) => L.node);
+    const ns = first && first.node.closest('np-scene');
+    if (!ns) return;
+    if (!sceneSeen) {
+      for (const a of ns.getAnimations({ subtree: true })) if (a.animationName !== 'np-pin' && a.playState === 'running') { a.pause(); held.add(a); }
+    } else {
+      for (const a of held) if (a.playState === 'paused') a.play();
+      held.clear();
+    }
+    const nb = ns.parentElement && ns.parentElement.querySelector('np-birds');
+    if (nb) nb.toggleAttribute('np-paused', !sceneSeen);
+  };
   // HA sometimes builds the header card anew (often when the app comes back after a while): move the scene that is
   // already built and decoded into the new card, instead of building and decoding it all again
   const moveScene = (hc) => {
@@ -854,6 +900,7 @@
       hc.insertBefore(ns, hc.querySelector('np-birds'));
       const st = ns.querySelector('.stage');
       new ResizeObserver(() => placeScene(st)).observe(st);
+      new IntersectionObserver((es) => { sceneSeen = es[es.length - 1].isIntersecting; holdScene(); }).observe(ns);
     }
     const stage = ns.querySelector('.stage');
     const frag = document.createDocumentFragment();
@@ -876,6 +923,7 @@
       if (L.kind === 'sun' || L.kind === 'moon') el.style.willChange = 'transform';
       if (L.kind === 'leaf' || L.kind === 'sparkle') el.style.transformOrigin = 'center';
       if (L.kind === 'tree') el.style.transformOrigin = '50% 100%';
+      if (L.opacity) el.style.opacity = L.opacity;
       frag.appendChild(el);
     }
     // swap in the new layers only when all of them are decoded, so they appear together (at most 4 s wait)
@@ -892,6 +940,7 @@
       extendGround(ns, next);
       scene = next;
       placeScene(stage);
+      if (!sceneSeen) holdScene();
       hc.setAttribute('np-layered', '');
       setLights(lamps.down, lamps.up);
       showOverlay();
@@ -1169,7 +1218,7 @@
   const NO_PLANES = ['fog', 'pouring', 'lightning', 'lightning-rainy'];
   const skyTick = () => {
     setTimeout(skyTick, (30 + Math.random() * 60) * 1000);
-    if (document.hidden || still || !scene || !houseSlug) return;
+    if (document.hidden || still || !scene || !houseSlug || !sceneSeen) return;
     if (!/\/mijn-huis(\/huis)?\/?$/.test(location.pathname)) return;
     const tod = houseSlug.split('-').pop(), wx = houseSlug.slice(0, houseSlug.lastIndexOf('-'));
     const stars = scene.layers.some((L) => L.kind === 'twinkle');
@@ -1180,7 +1229,7 @@
   const PEOPLE_MIX = [['walker', 45], ['cyclist', 25], ['dogwalker', 30]];
   const peopleTick = () => {
     setTimeout(peopleTick, (25 + Math.random() * 35) * 1000);
-    if (document.hidden || still || !scene || !houseSlug) return;
+    if (document.hidden || still || !scene || !houseSlug || !sceneSeen) return;
     if (!/\/mijn-huis(\/huis)?\/?$/.test(location.pathname)) return;
     const tod = houseSlug.split('-').pop(), wx = houseSlug.slice(0, houseSlug.lastIndexOf('-'));
     if (tod === 'night' && Math.random() < 0.5) return;
@@ -1291,7 +1340,7 @@
     const ha = document.querySelector('home-assistant');
     const states = (ha && ha.hass && ha.hass.states) || {};
     if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); followSun(states); followMoon(ha.hass); followWind(states); }
-    if (ha && ha.hass && onHuis) checkSnow(ha);
+    if (ha && ha.hass && onHuis) { checkSnow(ha); checkMeteo(ha); }
     // weather preview button next to the segmented control (Huis view only)
     h.toggleAttribute('np-huis', onHuis);
     h.toggleAttribute('np-test', !!test.on);
