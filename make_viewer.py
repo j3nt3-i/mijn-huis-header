@@ -84,7 +84,7 @@ __SKY____OV____CRITTERS____WEATHER__
     ha-card::before{content:'';position:absolute;z-index:-1;top:-56px;left:0;width:100%;height:calc(100% + 56px);background:var(--np-house,none) center bottom/100% auto no-repeat var(--np-sky,#2c3245)}
     /* tablet and desktop: the whole drawing as a panel on the left that stays put while the rooms scroll on the right */
     :host(.wide){display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:28px;padding:76px 28px 28px;align-items:start}
-    :host(.wide) ha-card{grid-column:1;grid-row:1/span 20;position:sticky;top:76px;height:calc(var(--frame-h) - 100px);width:auto;aspect-ratio:887/1662;margin:0!important;padding:30px 24px 0;border-radius:28px;overflow:hidden;box-shadow:0 10px 30px #0004}
+    :host(.wide) ha-card{grid-column:1;grid-row:1/span 20;position:sticky;top:76px;height:calc(var(--frame-h) - 100px);width:auto;aspect-ratio:887/1662;margin:0!important;padding:30px 24px 0;border-radius:28px;overflow:hidden}
     :host(.wide) ha-card::before{display:none}
     :host(.wide) np-scene{top:0!important;height:100%!important;-webkit-mask:none!important;mask:none!important}
     :host(.wide) np-scene .pin{animation:none!important}:host(.wide) np-scene .pin::after{display:none}
