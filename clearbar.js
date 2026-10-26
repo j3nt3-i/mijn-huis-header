@@ -24,7 +24,7 @@
     ':host([np-wide])::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(120% 90% at 15% 20%, ' +
     'color-mix(in srgb, var(--np-glow, var(--np-sky, #2c3245)) 85%, var(--primary-background-color)) 0%, color-mix(in srgb, var(--np-glow, var(--np-sky, #2c3245)) 40%, var(--primary-background-color)) 55%, ' +
     'color-mix(in srgb, var(--np-glow, var(--np-sky, #2c3245)) 14%, var(--primary-background-color)) 100%); } ' +
-    ':host([np-wide]) .header { background: color-mix(in srgb, var(--primary-background-color) 35%, transparent) !important; ' +
+    ':host([np-wide]) .header { background: transparent !important; ' +
     '-webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: none !important; } ' +
     ':host([np-wide]) .toolbar { border-bottom-color: transparent !important; } ' +
     // HA's own view background would cover the glow
@@ -1377,6 +1377,8 @@
   // fill the columns that fit next to it (HA's grid is told the new count). The panel size (--np-pw, --np-panel-h) is
   // worked out below; the header card takes its height from --np-panel-h.
   const PANEL_CSS = '@media (min-width: 871px) { ' +
+    // the cards let the sky glow through a little
+    ':host([np-panel]) { --ha-card-background: color-mix(in srgb, var(--card-background-color) 70%, transparent); } ' +
     ':host([np-panel]) .wrapper { --column-count: var(--np-cols) !important; --content-column-count: var(--np-cols) !important; ' +
     'max-width: calc(var(--np-pw) + var(--column-gap) + var(--np-cols) * var(--column-max-width) + (var(--np-cols) - 1) * var(--column-gap)) !important; } ' +
     ':host([np-panel]) .container { padding-left: calc(var(--np-pw) + var(--column-gap)); } ' +
@@ -1419,6 +1421,28 @@
     const left = Math.round(wrap.getBoundingClientRect().left + gap) + 'px';
     if (sv.style.getPropertyValue('--np-left') !== left) sv.style.setProperty('--np-left', left);
   };
+  // the menu on the left lets the glow through as well (its own colour and its edge go see-through)
+  let sidebarParts = null;
+  const setSidebarClear = (on) => {
+    if (!sidebarParts || !sidebarParts.every((p) => p && p.isConnected)) {
+      const main = document.querySelector('home-assistant');
+      const ham = main && main.shadowRoot && main.shadowRoot.querySelector('home-assistant-main');
+      const sb = ham && ham.shadowRoot && ham.shadowRoot.querySelector('ha-sidebar');
+      const dr = ham && ham.shadowRoot && ham.shadowRoot.querySelector('ha-drawer');
+      if (!sb || !dr || !dr.shadowRoot) return;
+      sidebarParts = [sb, dr];
+      const add = (root, text) => {
+        if (root.querySelector('style[data-np-side]')) return;
+        const st = document.createElement('style');
+        st.setAttribute('data-np-side', '');
+        st.textContent = text;
+        root.appendChild(st);
+      };
+      add(ham.shadowRoot, 'ha-sidebar[np-clear] { background: transparent !important; }');
+      add(dr.shadowRoot, ':host([np-clear]) .sidebar-shell { border-right-color: transparent !important; }');
+    }
+    sidebarParts.forEach((p) => p.toggleAttribute('np-clear', on));
+  };
   const update = () => {
     const h = ensure();
     if (!h) return;
@@ -1436,6 +1460,7 @@
     h.toggleAttribute('np-page', onHuis && narrow && atScenes);
     setPanel(h, onHuis && !narrow);
     h.toggleAttribute('np-wide', onHuis && !narrow);
+    setSidebarClear(onHuis && !narrow);
     const ha = document.querySelector('home-assistant');
     const states = (ha && ha.hass && ha.hass.states) || {};
     if (ha && ha.hass && states['sun.sun']) { const slug = slugFor(states); setHouse(ha, slug); setOverlay(ha.hass, slug); if (onHuis) setBirds(h, slug, states); followSun(states); followMoon(ha.hass); followWind(states); }
