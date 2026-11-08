@@ -367,7 +367,9 @@
     ';animation-duration:' + (1.5 + ((n + k) % 4) * 0.3).toFixed(1) + 's;animation-delay:-' + (k * 0.6) + 's"></i>').join('') + '</b>').join('');
   const BIRD_CSS = 'np-birds[np-paused], np-birds[np-paused] * { animation-play-state: paused !important; } np-birds { position: absolute; z-index: -1; pointer-events: none; left: 0; width: 100%; overflow: hidden; display: block; ' +
     'top: calc(-1 * (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); height: calc(100% + (var(--header-height, 56px) + env(safe-area-inset-top, 0px))); ' +
-    'will-change: transform; animation: np-pin linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
+    '} ' +
+    // like np-scene: the frame scrolls away with the page and clips, only the inner layer is held still
+    'np-birds > p { position: absolute; inset: 0; margin: 0; will-change: transform; animation: np-pin linear both; animation-timeline: scroll(root); animation-range: 0 1000px; } ' +
     '@keyframes np-pin { from { transform: translateY(0); } to { transform: translateY(1000px); } } ' +
     'np-birds:not([show]) b, np-birds:not([show]) u { display: none; } ' +
     // music notes drift up out of the living room window (music downstairs) and out of an upstairs window
@@ -384,7 +386,7 @@
     '@keyframes np-note-b { 0% { opacity: 0; transform: translate(0, 0) scale(0.6) rotate(8deg); } 15% { opacity: 1; } ' +
     '55% { transform: translate(-2.5vw, -7vw) scale(1) rotate(-8deg); } 100% { opacity: 0; transform: translate(1.5vw, -14vw) scale(0.9) rotate(6deg); } } ' +
     // tablet and desktop: the panel stays put, so the birds do not follow the scroll either
-    '@media (min-width: 871px) { np-birds s { display: none !important; } np-birds { animation: none; } } ' +
+    '@media (min-width: 871px) { np-birds s { display: none !important; } np-birds > p { animation: none; } } ' +
     'np-birds b { position: absolute; left: 0; will-change: transform; animation: linear infinite; } ' +
     'np-birds b i { position: absolute; display: block; background: ' + BIRD + ' center / contain no-repeat; animation: np-bob ease-in-out infinite alternate; } ' +
     // each bird (or the little flock) crosses in a few seconds and then waits off-screen for the rest of its cycle
@@ -431,13 +433,13 @@
     let nb = hc.querySelector('np-birds');
     if (!nb) {
       nb = document.createElement('np-birds');
-      nb.innerHTML = birdHTML + '<u></u>' + '<s class="dn"></s><s class="dn n2"></s><s class="dn n3"></s><s class="dn n4"></s><s class="up"></s><s class="up n2"></s><s class="up n3"></s><s class="up n4"></s><s class="up l"></s><s class="up l n2"></s><s class="up l n3"></s>';
+      nb.innerHTML = '<p>' + birdHTML + '<u></u>' + '<s class="dn"></s><s class="dn n2"></s><s class="dn n3"></s><s class="dn n4"></s><s class="up"></s><s class="up n2"></s><s class="up n3"></s><s class="up n4"></s><s class="up l"></s><s class="up l n2"></s><s class="up l n3"></s></p>';
       hc.appendChild(nb);
     }
     const [wx, tod] = [slug.slice(0, slug.lastIndexOf('-')), slug.split('-').pop()];
     nb.toggleAttribute('show', BIRD_WEATHER.includes(wx) && tod !== 'night');
     nb.toggleAttribute('dim', tod === 'dawn' || tod === 'dusk');
-    // same source as 'music in …' in the greeting: the media players that are playing right now
+    // the media players that are playing right now (kept up to date in input_text.now_playing_shown)
     const np = states['input_text.now_playing_shown'];
     const playing = np ? np.state.split('|').filter((x) => x && !['unknown', 'unavailable'].includes(x)) : [];
     // upstairs: the Hall display and the first floor group (also when they play outside the greeting's list)

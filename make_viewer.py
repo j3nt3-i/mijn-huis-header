@@ -125,13 +125,13 @@ __SKY____OV____CRITTERS____WEATHER__
   <div class="scenes new"></div><div class="room"></div><div class="rest"><i></i><i></i><i></i></div>`;
   const hc = sr.querySelector('ha-card');
   // the scene cards below the illustration, the real scenes from the dashboard; tap one to make it the active scene
-  const MDI = { sofa: 'M12.5 7C12.5 5.89 13.39 5 14.5 5H18C19.1 5 20 5.9 20 7V9.16C18.84 9.57 18 10.67 18 11.97V14H12.5V7M6 11.96V14H11.5V7C11.5 5.89 10.61 5 9.5 5H6C4.9 5 4 5.9 4 7V9.15C5.16 9.56 6 10.67 6 11.96M20.66 10.03C19.68 10.19 19 11.12 19 12.12V15H5V12C5 10.9 4.11 10 3 10S1 10.9 1 12V17C1 18.1 1.9 19 3 19V21H5V19H19V21H21V19C22.1 19 23 18.1 23 17V12C23 10.79 21.91 9.82 20.66 10.03Z',
+  const MDI = { lamp: 'M8 2H16L20 14H4L8 2M11 15H13V20H18V22H6V20H11V15Z', sofa: 'M12.5 7C12.5 5.89 13.39 5 14.5 5H18C19.1 5 20 5.9 20 7V9.16C18.84 9.57 18 10.67 18 11.97V14H12.5V7M6 11.96V14H11.5V7C11.5 5.89 10.61 5 9.5 5H6C4.9 5 4 5.9 4 7V9.15C5.16 9.56 6 10.67 6 11.96M20.66 10.03C19.68 10.19 19 11.12 19 12.12V15H5V12C5 10.9 4.11 10 3 10S1 10.9 1 12V17C1 18.1 1.9 19 3 19V21H5V19H19V21H21V19C22.1 19 23 18.1 23 17V12C23 10.79 21.91 9.82 20.66 10.03Z',
     sun: 'M3.55 19.09L4.96 20.5L6.76 18.71L5.34 17.29M12 6C8.69 6 6 8.69 6 12S8.69 18 12 18 18 15.31 18 12C18 8.68 15.31 6 12 6M20 13H23V11H20M17.24 18.71L19.04 20.5L20.45 19.09L18.66 17.29M20.45 5L19.04 3.6L17.24 5.39L18.66 6.81M13 1H11V4H13M6.76 5.39L4.96 3.6L3.55 5L5.34 6.81L6.76 5.39M1 13H4V11H1M13 20H11V23H13',
     bed: 'M19,7H11V14H3V5H1V20H3V17H21V20H23V11A4,4 0 0,0 19,7M7,13A3,3 0 0,0 10,10A3,3 0 0,0 7,7A3,3 0 0,0 4,10A3,3 0 0,0 7,13Z',
     sleep: 'M18.73,18C15.4,21.69 9.71,22 6,18.64C2.33,15.31 2.04,9.62 5.37,5.93C6.9,4.25 9,3.2 11.27,3C7.96,6.7 8.27,12.39 12,15.71C13.63,17.19 15.78,18 18,18C18.25,18 18.5,18 18.73,18Z',
     exit: 'M13.34,8.17C12.41,8.17 11.65,7.4 11.65,6.47A1.69,1.69 0 0,1 13.34,4.78C14.28,4.78 15.04,5.54 15.04,6.47C15.04,7.4 14.28,8.17 13.34,8.17M10.3,19.93L4.37,18.75L4.71,17.05L8.86,17.9L10.21,11.04L8.69,11.64V14.5H7V10.54L11.4,8.67L12.07,8.59C12.67,8.59 13.17,8.93 13.5,9.44L14.36,10.79C15.04,12 16.39,12.82 18,12.82V14.5C16.14,14.5 14.44,13.67 13.34,12.4L12.84,14.94L14.61,16.63V23H12.92V17.9L11.14,16.21L10.3,19.93M21,23H19V3H6V16.11L4,15.69V1H21V23M6,23H4V19.78L6,20.2V23Z',
   };
-  const SCENES = [['Chill time', 'sofa', '255, 152, 0', '6 devices', 'Living Room'], ['Day time', 'sun', '255, 193, 7', '6 devices', 'Living Room'],
+  const SCENES = [['Cozy time', 'sofa', '255, 152, 0', '7 devices', 'Living Room'], ['Chill time', 'lamp', '255, 87, 34', '7 devices', 'Living Room'], ['Day time', 'sun', '255, 193, 7', '7 devices', 'Living Room'],
     ['Bed time', 'bed', '0, 150, 136', '2 devices', 'Bedroom'], ['Sleep', 'sleep', '103, 58, 183', '2 devices', 'Bedroom'], ['Going out', 'exit', '33, 150, 243', 'Whole house', 'Whole house']];
   const svgIcon = (d, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + '><path d="' + d + '"/></svg>';
   const scenesEl = sr.querySelector('.scenes');
@@ -141,7 +141,7 @@ __SKY____OV____CRITTERS____WEATHER__
       const el = document.createElement('div');
       el.className = 'sc' + (i === 0 ? ' on' : '');
       el.style.setProperty('--c', rgb);
-      el.style.setProperty('--anim', { sun: 'np-spin .9s cubic-bezier(.2,.8,.2,1)', sofa: 'np-bounce .7s ease-out', bed: 'np-tilt .7s ease-in-out', sleep: 'np-rock .9s ease-in-out', exit: 'np-run .6s ease-in-out' }[icon]);
+      el.style.setProperty('--anim', { sun: 'np-spin .9s cubic-bezier(.2,.8,.2,1)', sofa: 'np-bounce .7s ease-out', lamp: 'np-bounce .7s ease-out', bed: 'np-tilt .7s ease-in-out', sleep: 'np-rock .9s ease-in-out', exit: 'np-run .6s ease-in-out' }[icon]);
       el.innerHTML = '<span class="ic">' + svgIcon(MDI[icon]) + '</span><b>' + name + '</b><small>' + devices + '</small>';
       el.onclick = () => { scenesEl.querySelectorAll('.sc').forEach((x) => x.classList.toggle('on', x === el)); };
       scenesEl.appendChild(el);
@@ -178,7 +178,7 @@ __SKY____OV____CRITTERS____WEATHER__
   host.style.setProperty('--np-scenes-offset', 'calc(-81.76px - 4px)');  // 20.44vw of the 400px phone
   // the bird/dog/notes layer, exactly as the dashboard script builds it
   const st = document.createElement('style'); st.textContent = BIRD_CSS.replace(/@media \(min-width: 871px\)/g, '@media (min-width: 99999px)').replace(/100vw/g, '400px').replace(/(\d+(?:\.\d+)?)vw/g, (m, n) => (n * 4) + 'px'); sr.appendChild(st);
-  const nb = document.createElement('np-birds'); nb.innerHTML = birdHTML + '<u></u><s class="dn"></s><s class="dn n2"></s><s class="dn n3"></s><s class="dn n4"></s><s class="up"></s><s class="up n2"></s><s class="up n3"></s><s class="up n4"></s><s class="up l"></s><s class="up l n2"></s><s class="up l n3"></s>'; hc.appendChild(nb);
+  const nb = document.createElement('np-birds'); nb.innerHTML = '<p>' + birdHTML + '<u></u><s class="dn"></s><s class="dn n2"></s><s class="dn n3"></s><s class="dn n4"></s><s class="up"></s><s class="up n2"></s><s class="up n3"></s><s class="up n4"></s><s class="up l"></s><s class="up l n2"></s><s class="up l n3"></s></p>'; hc.appendChild(nb);
   let busy = 0;
   const render = async () => {
     // the same choice as the dashboard: a dry day with wind gets the windy drawing
